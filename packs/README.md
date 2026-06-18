@@ -2,6 +2,8 @@
 
 每个 pack 必须是 maintainer-promoted asset，不接收未经 `evozeus-factor-lab` review 的普通投稿。
 
+`EvoZeus` 主 repo 清理出来的旧 Factor prototype 不会自动进入本目录。它们必须先在 `evozeus-factor-lab/submissions/` 形成 review packet，通过 `reviewed/` 后，才可以准备 official release unit。
+
 建议结构：
 
 ```text
