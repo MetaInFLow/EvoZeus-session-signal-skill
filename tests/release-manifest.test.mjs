@@ -11,6 +11,7 @@ async function createReleaseFixture({ checksumOverride, omitAttestation } = {}) 
   const packPath = "packs/evozeus-default-pack/pack.yaml";
   const checksumPath = "checksums/evozeus-default-pack/v0.1.0.sha256";
   const attestationPath = "attestations/evozeus-default-pack/v0.1.0.attestation.json";
+  const sbomPath = "attestations/evozeus-default-pack/v0.1.0.sbom.json";
 
   await mkdir(join(root, "packs/evozeus-default-pack"), { recursive: true });
   await mkdir(join(root, "checksums/evozeus-default-pack"), { recursive: true });
@@ -25,6 +26,7 @@ async function createReleaseFixture({ checksumOverride, omitAttestation } = {}) 
   if (!omitAttestation) {
     await writeFile(join(root, attestationPath), JSON.stringify({ sbom: "present" }));
   }
+  await writeFile(join(root, sbomPath), JSON.stringify({ packages: [] }));
 
   return {
     root,
@@ -32,6 +34,7 @@ async function createReleaseFixture({ checksumOverride, omitAttestation } = {}) 
       schema_version: "0.1.0",
       pack_id: "evozeus-default-pack",
       version: "v0.1.0",
+      git_tag: "v0.1.0",
       source_review: {
         lab_path: "evozeus-factor-lab/reviewed/tool-use/evozeus-default-pack",
         reviewer: "maintainer",
@@ -49,8 +52,18 @@ async function createReleaseFixture({ checksumOverride, omitAttestation } = {}) 
         evozeus_protocol: ">=0.1.0",
         runtime: ">=0.1.0"
       },
+      registry_publication_plan: {
+        target_repo: "MetaInFLow/EvoZeus",
+        pointer_path: "factors/registry/evozeus-default-pack.json",
+        requires_pr: true
+      },
+      security_review: {
+        reviewer: "security-maintainer",
+        review_date: "2026-06-18"
+      },
       review_state: "promoted",
-      attestation: attestationPath
+      attestation: attestationPath,
+      sbom: sbomPath
     }
   };
 }
@@ -86,4 +99,49 @@ test("rejects source reviews that do not come from lab reviewed assets", async (
   }, { root });
 
   assert.match(issues.join("\n"), /reviewed/i);
+});
+
+test("rejects release units without a main registry publication plan", async () => {
+  const { root, manifest } = await createReleaseFixture();
+  const { registry_publication_plan: _registryPublicationPlan, ...withoutPlan } = manifest;
+  const issues = await validateReleaseManifest(withoutPlan, { root });
+
+  assert.match(issues.join("\n"), /registry_publication_plan/i);
+});
+
+test("rejects release units with mismatched git tag or checksum artifact path", async () => {
+  const { root, manifest } = await createReleaseFixture();
+  await writeFile(join(root, manifest.checksum.path), `${"a".repeat(64)}  wrong/path.yaml\n`);
+  const issues = await validateReleaseManifest({
+    ...manifest,
+    git_tag: "v0.2.0"
+  }, { root });
+
+  assert.match(issues.join("\n"), /git_tag/);
+  assert.match(issues.join("\n"), /artifact path/);
+});
+
+test("rejects release units without SBOM and security review", async () => {
+  const { root, manifest } = await createReleaseFixture();
+  const { sbom: _sbom, security_review: _securityReview, ...withoutSupplyChainReview } = manifest;
+  const issues = await validateReleaseManifest(withoutSupplyChainReview, { root });
+
+  assert.match(issues.join("\n"), /sbom/i);
+  assert.match(issues.join("\n"), /security_review/i);
+});
+
+test("rejects registry publication plans outside the main factor registry", async () => {
+  const { root, manifest } = await createReleaseFixture();
+  const issues = await validateReleaseManifest({
+    ...manifest,
+    registry_publication_plan: {
+      target_repo: "MetaInFLow/evozeus-runtime",
+      pointer_path: "docs/runtime.json",
+      requires_pr: false
+    }
+  }, { root });
+
+  assert.match(issues.join("\n"), /MetaInFLow\/EvoZeus/);
+  assert.match(issues.join("\n"), /factors\/registry/);
+  assert.match(issues.join("\n"), /requires_pr/);
 });

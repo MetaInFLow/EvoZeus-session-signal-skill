@@ -55,19 +55,26 @@ export async function validateReleaseManifest(manifest, options = {}) {
     issues.push("version must use semver tag format like v0.1.0");
   }
 
+  if (manifest.git_tag !== manifest.version) {
+    issues.push("git_tag must equal version");
+  }
+
   validateSourceReview(manifest.source_review, issues);
   const artifactPath = validateArtifact(manifest.artifact, root, issues);
   const checksumPath = validateChecksumDeclaration(manifest.checksum, root, issues);
   validateCompatibility(manifest.compatibility, issues);
+  validateRegistryPublicationPlan(manifest.registry_publication_plan, issues);
+  validateSecurityReview(manifest.security_review, issues);
 
   if (!REVIEW_STATES.has(manifest.review_state)) {
     issues.push("review_state must be promoted, deprecated, or yanked");
   }
 
   await validateAttestation(manifest.attestation, root, issues);
+  await validateSbom(manifest.sbom, root, issues);
 
   if (artifactPath && checksumPath) {
-    await validateChecksumFile({ artifactPath, checksumPath, issues });
+    await validateChecksumFile({ artifactPath, checksumPath, expectedArtifactPath: manifest.artifact.path, issues });
   }
 
   return issues;
@@ -159,6 +166,42 @@ function validateCompatibility(compatibility, issues) {
   }
 }
 
+function validateRegistryPublicationPlan(plan, issues) {
+  if (!isPlainObject(plan)) {
+    issues.push("registry_publication_plan is required");
+    return;
+  }
+
+  if (plan.target_repo !== "MetaInFLow/EvoZeus") {
+    issues.push("registry_publication_plan.target_repo must be MetaInFLow/EvoZeus");
+  }
+
+  if (!hasText(plan.pointer_path)) {
+    issues.push("registry_publication_plan.pointer_path is required");
+  } else if (!plan.pointer_path.startsWith("factors/registry/")) {
+    issues.push("registry_publication_plan.pointer_path must stay under factors/registry/");
+  }
+
+  if (plan.requires_pr !== true) {
+    issues.push("registry_publication_plan.requires_pr must be true");
+  }
+}
+
+function validateSecurityReview(review, issues) {
+  if (!isPlainObject(review)) {
+    issues.push("security_review is required");
+    return;
+  }
+
+  if (!hasText(review.reviewer)) {
+    issues.push("security_review.reviewer is required");
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(review.review_date ?? ""))) {
+    issues.push("security_review.review_date must use YYYY-MM-DD");
+  }
+}
+
 async function validateAttestation(attestation, root, issues) {
   if (!hasText(attestation)) {
     issues.push("attestation path is required");
@@ -177,7 +220,25 @@ async function validateAttestation(attestation, root, issues) {
   }
 }
 
-async function validateChecksumFile({ artifactPath, checksumPath, issues }) {
+async function validateSbom(sbom, root, issues) {
+  if (!hasText(sbom)) {
+    issues.push("sbom path is required");
+    return;
+  }
+
+  const sbomPath = safeJoin(root, sbom);
+
+  if (!sbomPath) {
+    issues.push("sbom path must be relative and inside the repo");
+    return;
+  }
+
+  if (!(await fileExists(sbomPath))) {
+    issues.push(`sbom file does not exist: ${sbom}`);
+  }
+}
+
+async function validateChecksumFile({ artifactPath, checksumPath, expectedArtifactPath, issues }) {
   if (!(await fileExists(artifactPath))) {
     issues.push("artifact path does not exist");
     return;
@@ -192,11 +253,15 @@ async function validateChecksumFile({ artifactPath, checksumPath, issues }) {
     readFile(artifactPath),
     readFile(checksumPath, "utf8")
   ]);
-  const expected = checksumContent.trim().split(/\s+/)[0];
+  const [expected, recordedPath] = checksumContent.trim().split(/\s+/);
   const actual = createHash("sha256").update(artifact).digest("hex");
 
   if (expected !== actual) {
     issues.push("checksum mismatch for artifact");
+  }
+
+  if (recordedPath !== expectedArtifactPath) {
+    issues.push("checksum file artifact path must match manifest artifact.path");
   }
 }
 

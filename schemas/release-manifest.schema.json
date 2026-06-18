@@ -8,12 +8,16 @@
     "schema_version",
     "pack_id",
     "version",
+    "git_tag",
     "source_review",
     "artifact",
     "checksum",
     "compatibility",
+    "registry_publication_plan",
+    "security_review",
     "review_state",
-    "attestation"
+    "attestation",
+    "sbom"
   ],
   "properties": {
     "schema_version": {
@@ -24,6 +28,10 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
     },
     "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?$"
+    },
+    "git_tag": {
       "type": "string",
       "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?$"
     },
@@ -85,11 +93,47 @@
         }
       }
     },
+    "registry_publication_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_repo", "pointer_path", "requires_pr"],
+      "properties": {
+        "target_repo": {
+          "type": "string",
+          "const": "MetaInFLow/EvoZeus"
+        },
+        "pointer_path": {
+          "type": "string",
+          "pattern": "^factors/registry/"
+        },
+        "requires_pr": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
     "review_state": {
       "type": "string",
       "enum": ["promoted", "deprecated", "yanked"]
     },
+    "security_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "review_date"],
+      "properties": {
+        "reviewer": {
+          "type": "string"
+        },
+        "review_date": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
     "attestation": {
+      "type": "string"
+    },
+    "sbom": {
       "type": "string"
     },
     "notes": {
