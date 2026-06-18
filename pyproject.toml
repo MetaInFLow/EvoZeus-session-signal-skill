@@ -1,0 +1,9 @@
+[project]
+name = "evozeus-factors-official"
+version = "0.1.0"
+description = "Stable Python contract and canonical examples for EvoZeus Factors."
+requires-python = ">=3.11"
+
+[tool.evozeus]
+repo_role = "official-factor-contract"
+default_factor_language = "python"

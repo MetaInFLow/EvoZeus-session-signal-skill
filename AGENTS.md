@@ -8,11 +8,12 @@
 
 ## Repo 职责
 
-- 维护官方 Factor packs 和发布元数据。
-- 接收经过 lab review 的 promotion candidate。
-- 输出 release manifest、checksums、SBOM 和 attestation。
+- 维护稳定的 Python OfficialFactor 抽象契约。
+- 维护官方 Factor spec schema 和 canonical examples。
+- 不承接真实业务 Factor pack、promotion candidate、release manifest、checksum、SBOM 或 attestation。
 
 ## Agent 入口
 
 - Official release 相关任务先读 `SKILL.md` 和 `README.md`。
-- 没有 `evozeus-factor-lab/reviewed` source review 时，不准备 official release。
+- 只在要修改官方 Factor contract、schema 或 canonical examples 时从本 repo 开始。
+- 真实执行、安装、扫描和 report 输出属于 infra。

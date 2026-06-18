@@ -1,0 +1,20 @@
+{
+  "session_id": "official-example-session-repeated-request",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "text": "Please generate the report."
+    },
+    {
+      "id": "assistant-1",
+      "role": "assistant",
+      "text": "I will inspect the workspace first."
+    },
+    {
+      "id": "user-2",
+      "role": "user",
+      "text": "Please do the same request again."
+    }
+  ]
+}
