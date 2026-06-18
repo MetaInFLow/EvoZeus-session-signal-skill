@@ -1,0 +1,15 @@
+{
+  "factor_id": "test.tool-failure",
+  "title": "Specified tool failure official test factor",
+  "version": "0.1.0",
+  "match": {
+    "any_event": {
+      "role": "tool",
+      "status": "error"
+    }
+  },
+  "outputs": {
+    "tags": ["tool:error"],
+    "verdict_signals": ["tool returned an error"]
+  }
+}

@@ -11,3 +11,8 @@
 - 维护官方 Factor packs 和发布元数据。
 - 接收经过 lab review 的 promotion candidate。
 - 输出 release manifest、checksums、SBOM 和 attestation。
+
+## Agent 入口
+
+- Official release 相关任务先读 `SKILL.md` 和 `README.md`。
+- 没有 `evozeus-factor-lab/reviewed` source review 时，不准备 official release。

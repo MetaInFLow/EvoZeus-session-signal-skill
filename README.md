@@ -65,7 +65,7 @@ evozeus-factor-lab/reviewed
 给 Agent 的最短指令：
 
 ```text
-Read evozeus-factors-official/README.md and prepare an official Factor release checklist.
+Read evozeus-factors-official/SKILL.md and README.md, then prepare an official Factor release checklist.
 Verify source_review, release manifest, checksum, attestation/SBOM, Git tag, compatibility, review_state, and EvoZeus main registry pointer plan.
 Do not invent reviewed status. Do not consume branch content as an official release.
 ```
@@ -186,7 +186,16 @@ Consumer 必须能回答：
 ```bash
 git diff --check
 python3 -m json.tool schemas/release-manifest.schema.json >/dev/null
+npm test
+npm run test:release-contract
+npm run test:official-factor-runner
+npm run test:fixed-factor
+npm run test:factor
 ```
+
+`test:release-contract` 校验 release manifest 是否指向 lab reviewed asset，并验证 artifact、checksum、attestation、compatibility 和 review_state。
+
+`test:fixed-factor` 从测试 pack 运行固定 Factor；`test:factor` 按 Factor id 从测试 pack 运行指定 Factor。两者都必须输出 pack id、Factor id、match status、tags、verdict signals 和 evidence refs。
 
 ## Repo Map
 
@@ -231,7 +240,7 @@ runtime consumer
 | --- | --- |
 | Release structure | `packs/`、`manifests/`、`checksums/`、`attestations/` 已建立 |
 | Manifest schema | `schemas/release-manifest.schema.json` 已存在 |
-| Verification docs | `scripts/README.md` 有手工 gate |
+| Verification scripts | `scripts/validate-release-manifest.mjs`、`scripts/run-official-factor.mjs` 和 `npm test` 已存在 |
 | Official releases | 尚未发布首个 pack |
 | Main registry pointer | 等待 `EvoZeus` main registry schema 稳定 |
 
