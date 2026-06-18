@@ -1,0 +1,15 @@
+{
+  "factor_id": "fixed.repeated-request",
+  "title": "Fixed repeated request official test factor",
+  "version": "0.1.0",
+  "match": {
+    "any_event": {
+      "role": "user",
+      "text_includes": "again"
+    }
+  },
+  "outputs": {
+    "tags": ["loop:rerequest"],
+    "verdict_signals": ["user repeated the same request"]
+  }
+}

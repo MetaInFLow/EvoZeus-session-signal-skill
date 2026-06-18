@@ -1,0 +1,15 @@
+{
+  "session_id": "session-repeated-request",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "text": "Please run the review."
+    },
+    {
+      "id": "user-2",
+      "role": "user",
+      "text": "Please run the same review again."
+    }
+  ]
+}

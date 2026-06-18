@@ -1,6 +1,6 @@
 # Release Verification
 
-这里先记录 official pack release 的手工验证步骤；后续可沉淀为脚本或 CI。
+这里记录 official pack release 的验证步骤。当前 repo 已提供 `scripts/validate-release-manifest.mjs` 和 `npm test`，用于校验 release unit 的 reviewed source、artifact、checksum、attestation 和 compatibility。
 
 ## Required Checks
 
@@ -12,3 +12,12 @@
 6. PR 说明包含 registry publication plan。
 
 Release 未通过这些检查时，不创建或推进 `EvoZeus` main registry PR。
+
+## Local Test
+
+```bash
+npm test
+npm run test:release-contract
+npm run test:fixed-factor
+npm run test:factor
+```

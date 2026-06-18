@@ -1,0 +1,8 @@
+{
+  "pack_id": "evozeus-test-pack",
+  "version": "v0.1.0",
+  "factors": [
+    "factors/fixed-repeated-request.json",
+    "factors/test-tool-failure.json"
+  ]
+}

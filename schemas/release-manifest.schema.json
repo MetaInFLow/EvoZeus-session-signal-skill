@@ -12,7 +12,8 @@
     "artifact",
     "checksum",
     "compatibility",
-    "review_state"
+    "review_state",
+    "attestation"
   ],
   "properties": {
     "schema_version": {
@@ -74,6 +75,7 @@
     "compatibility": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["evozeus_protocol", "runtime"],
       "properties": {
         "evozeus_protocol": {
           "type": "string"

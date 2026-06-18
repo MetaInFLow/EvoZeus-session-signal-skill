@@ -1,0 +1,12 @@
+{
+  "name": "evozeus-factors-official",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:release-contract": "node --test tests/release-manifest.test.mjs",
+    "test:official-factor-runner": "node --test tests/official-factor-runner.test.mjs",
+    "test:fixed-factor": "node scripts/run-official-factor.mjs --fixed --pack-root tests/fixtures/official-packs --session tests/fixtures/sessions/repeated-request.json",
+    "test:factor": "node scripts/run-official-factor.mjs --factor test.tool-failure --pack-root tests/fixtures/official-packs --session tests/fixtures/sessions/tool-failure.json"
+  }
+}
