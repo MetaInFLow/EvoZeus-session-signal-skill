@@ -1,0 +1,102 @@
+{
+  "schema_version": "official.factor.v0",
+  "factor_id": "official.usage-sentence-cloud",
+  "version": "v0.1.0",
+  "status": "matched",
+  "target_type": "session",
+  "target_id": "official-factor-session-usage-sentence-cloud",
+  "stage": "signal_extraction",
+  "confidence": 0.74,
+  "tags": [
+    {
+      "type": "usage_sentence",
+      "value": "high_frequency"
+    }
+  ],
+  "scores": {
+    "usage_sentence_count": 2.0
+  },
+  "statistics": {},
+  "datasets": [
+    {
+      "id": "usage_sentence_cloud",
+      "semantic_type": "high_frequency_phrase_set",
+      "shape": "record_set",
+      "primary_key": "sentence_id",
+      "records": [
+        {
+          "sentence_id": "usage_sentence_ff598dc927cf",
+          "display_sentence": "合理利用 subagent",
+          "text": "合理利用 subagent",
+          "value": 2.1,
+          "weight": 2.1,
+          "count": 2,
+          "raw_count": 2,
+          "session_count": 1,
+          "category": "工作流句",
+          "sample_session_ids": [
+            "official-factor-session-usage-sentence-cloud"
+          ]
+        },
+        {
+          "sentence_id": "usage_sentence_2af0099cdf2e",
+          "display_sentence": "拉起来看下",
+          "text": "拉起来看下",
+          "value": 1.1,
+          "weight": 1.1,
+          "count": 1,
+          "raw_count": 1,
+          "session_count": 1,
+          "category": "使用句",
+          "sample_session_ids": [
+            "official-factor-session-usage-sentence-cloud"
+          ]
+        }
+      ],
+      "schema": {
+        "sentence_id": "string",
+        "text": "string",
+        "value": "number",
+        "category": "string"
+      },
+      "evidence_policy": {}
+    }
+  ],
+  "presentations": [
+    {
+      "id": "usage_sentence_word_cloud",
+      "title": "高频使用句云",
+      "component_ref": "builtin.word_cloud.v1",
+      "data_ref": "usage_sentence_cloud",
+      "bindings": {
+        "word": "text",
+        "weight": "value",
+        "color": "category"
+      },
+      "props": {
+        "height": 420
+      },
+      "routes": [
+        "dashboard",
+        "drawer"
+      ],
+      "fallback": [
+        "builtin.table.v1",
+        "builtin.json.v1"
+      ],
+      "priority": 80
+    }
+  ],
+  "verdict_signals": [],
+  "evidence_refs": [
+    {
+      "ref_id": "user-1",
+      "kind": "user_turn"
+    },
+    {
+      "ref_id": "user-2",
+      "kind": "user_turn"
+    }
+  ],
+  "notes": []
+}

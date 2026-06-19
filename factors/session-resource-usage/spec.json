@@ -1,0 +1,80 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.session-resource-usage",
+  "version": "v0.1.0",
+  "title": "Session resource usage",
+  "summary": "提取当前会话使用过的 tool、skill、MCP server、plugin 和 connector，并统计各自出现次数。",
+  "title_i18n": {
+    "zh-CN": "会话资源使用",
+    "en-US": "Session resource usage"
+  },
+  "summary_i18n": {
+    "zh-CN": "提取当前会话使用过的 tool、skill、MCP server、plugin 和 connector，并统计各自出现次数。",
+    "en-US": "Extracts tools, skills, MCP servers, plugins, and connectors used in a session and counts them."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": [
+      "events[].id",
+      "events[].role",
+      "events[].text"
+    ],
+    "accepted_input_kinds": [
+      "session",
+      "project",
+      "scan_record_set"
+    ],
+    "target_types": [
+      "session",
+      "project",
+      "scan_record_set"
+    ],
+    "record_types": [
+      "session_envelope"
+    ],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted event metadata and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": [
+      "matched",
+      "not_matched",
+      "skipped",
+      "error"
+    ],
+    "fields": [
+      "tags",
+      "scores",
+      "statistics",
+      "datasets",
+      "presentations",
+      "evidence_refs"
+    ],
+    "dataset_semantic_types": [
+      "session_resource_usage",
+      "frequency_distribution"
+    ],
+    "presentation_components": [
+      "builtin.bar_chart.v1",
+      "builtin.table.v1",
+      "builtin.json.v1"
+    ]
+  },
+  "test_vectors": [
+    {
+      "name": "session uses tools skills and mcp servers",
+      "input": "factors/session-resource-usage/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

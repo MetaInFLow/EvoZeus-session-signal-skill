@@ -1,0 +1,29 @@
+{
+  "session_id": "official-factor-session-key-sentence-trends",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "timestamp": "2026-06-17T09:00:00+08:00",
+      "text": "先看 docs 里的 design doc。"
+    },
+    {
+      "id": "user-2",
+      "role": "user",
+      "timestamp": "2026-06-17T11:00:00+08:00",
+      "text": "先看 docs 里的 design doc，再开始实现。"
+    },
+    {
+      "id": "user-3",
+      "role": "user",
+      "timestamp": "2026-06-18T10:00:00+08:00",
+      "text": "合理利用 subagent。"
+    },
+    {
+      "id": "user-4",
+      "role": "user",
+      "timestamp": "2026-06-18T12:00:00+08:00",
+      "text": "合理利用subagent，开始开发。"
+    }
+  ]
+}

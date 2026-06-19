@@ -1,0 +1,80 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.user-input-sentiment",
+  "version": "v0.1.0",
+  "title": "User input sentiment",
+  "summary": "判断用户在会话里表达的是正向、负向还是中性情绪，并保留对应用户消息作为证据。",
+  "title_i18n": {
+    "zh-CN": "用户输入情感",
+    "en-US": "User input sentiment"
+  },
+  "summary_i18n": {
+    "zh-CN": "判断用户在会话里表达的是正向、负向还是中性情绪，并保留对应用户消息作为证据。",
+    "en-US": "Classifies user messages as positive, negative, or neutral and keeps message evidence."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": [
+      "events[].id",
+      "events[].role",
+      "events[].text"
+    ],
+    "accepted_input_kinds": [
+      "session",
+      "project",
+      "scan_record_set"
+    ],
+    "target_types": [
+      "session",
+      "project",
+      "scan_record_set"
+    ],
+    "record_types": [
+      "session_envelope"
+    ],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted user turns and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": [
+      "matched",
+      "not_matched",
+      "skipped",
+      "error"
+    ],
+    "fields": [
+      "tags",
+      "scores",
+      "statistics",
+      "datasets",
+      "presentations",
+      "evidence_refs"
+    ],
+    "dataset_semantic_types": [
+      "user_sentiment",
+      "frequency_distribution"
+    ],
+    "presentation_components": [
+      "builtin.bar_chart.v1",
+      "builtin.table.v1",
+      "builtin.json.v1"
+    ]
+  },
+  "test_vectors": [
+    {
+      "name": "mixed user sentiment turns",
+      "input": "factors/user-input-sentiment/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

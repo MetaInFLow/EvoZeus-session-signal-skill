@@ -1,0 +1,40 @@
+{
+  "session_id": "official-factor-session-resource-usage",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "text": "使用 $systematic-debugging 看一下失败原因。",
+      "skill_name": "systematic-debugging"
+    },
+    {
+      "id": "assistant-1",
+      "role": "assistant",
+      "text": "我会用 tool 和 MCP 查询当前状态。",
+      "skills": [
+        "verification-before-completion"
+      ]
+    },
+    {
+      "id": "tool-1",
+      "role": "tool",
+      "tool_name": "exec_command",
+      "text": "python3 -m unittest discover -s tests"
+    },
+    {
+      "id": "tool-2",
+      "role": "tool",
+      "tool_name": "mcp__node_repl__js",
+      "mcp_server": "node_repl",
+      "text": "inspected runtime metadata"
+    },
+    {
+      "id": "tool-3",
+      "role": "tool",
+      "tool_name": "mcp__codex_apps__supabase._execute_sql",
+      "mcp_server": "codex_apps",
+      "connector_name": "supabase",
+      "text": "queried project metadata"
+    }
+  ]
+}
