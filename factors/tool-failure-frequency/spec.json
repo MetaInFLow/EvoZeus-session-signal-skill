@@ -1,0 +1,47 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.tool-failure-frequency",
+  "version": "v0.1.0",
+  "title": "Tool failure frequency",
+  "summary": "统计哪些工具调用失败最多，并用图表展示失败次数分布。",
+  "title_i18n": {
+    "zh-CN": "工具失败频率",
+    "en-US": "Tool failure frequency"
+  },
+  "summary_i18n": {
+    "zh-CN": "统计哪些工具调用失败最多，并用图表展示失败次数分布。",
+    "en-US": "Counts which tool calls fail most often and shows the failure frequency distribution."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": ["events[].id", "events[].role", "events[].text"],
+    "accepted_input_kinds": ["session", "project", "scan_record_set"],
+    "target_types": ["session", "project", "scan_record_set"],
+    "record_types": ["session_envelope"],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted tool output and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": ["matched", "not_matched", "skipped", "error"],
+    "fields": ["scores", "statistics", "datasets", "presentations", "evidence_refs"],
+    "dataset_semantic_types": ["frequency_distribution"],
+    "presentation_components": ["builtin.bar_chart.v1", "builtin.table.v1", "builtin.json.v1"]
+  },
+  "test_vectors": [
+    {
+      "name": "tool failures by tool name",
+      "input": "factors/tool-failure-frequency/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

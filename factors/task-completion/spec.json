@@ -1,0 +1,75 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.task-completion",
+  "version": "v0.1.0",
+  "title": "Task completion",
+  "summary": "判断一次会话里的任务是否已经完成，并给出支撑这个判断的事件证据。",
+  "title_i18n": {
+    "zh-CN": "任务完成判断",
+    "en-US": "Task completion"
+  },
+  "summary_i18n": {
+    "zh-CN": "判断一次会话里的任务是否已经完成，并给出支撑这个判断的事件证据。",
+    "en-US": "Determines whether a task in a session has been completed and returns supporting evidence."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": [
+      "events[].id",
+      "events[].role",
+      "events[].text"
+    ],
+    "accepted_input_kinds": [
+      "session"
+    ],
+    "target_types": [
+      "session"
+    ],
+    "record_types": [
+      "session_envelope"
+    ],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted events and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": [
+      "matched",
+      "not_matched",
+      "skipped",
+      "error"
+    ],
+    "fields": [
+      "tags",
+      "scores",
+      "statistics",
+      "datasets",
+      "presentations",
+      "verdict_signals",
+      "evidence_refs"
+    ],
+    "dataset_semantic_types": [
+      "task_completion_verdict"
+    ],
+    "presentation_components": [
+      "builtin.table.v1",
+      "builtin.json.v1"
+    ]
+  },
+  "test_vectors": [
+    {
+      "name": "assistant reports task completed",
+      "input": "factors/task-completion/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

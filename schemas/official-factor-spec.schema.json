@@ -11,12 +11,14 @@
     "version",
     "title",
     "summary",
+    "title_i18n",
+    "summary_i18n",
     "compatibility",
     "governance",
     "input_contract",
     "evidence_contract",
     "output_contract",
-    "examples"
+    "test_vectors"
   ],
   "properties": {
     "schema_version": {
@@ -42,6 +44,12 @@
       "type": "string",
       "minLength": 10
     },
+    "title_i18n": {
+      "$ref": "#/$defs/localized_title"
+    },
+    "summary_i18n": {
+      "$ref": "#/$defs/localized_summary"
+    },
     "compatibility": {
       "type": "object",
       "additionalProperties": false,
@@ -65,7 +73,7 @@
     "input_contract": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event_model", "required_fields"],
+      "required": ["event_model", "required_fields", "accepted_input_kinds", "target_types", "record_types"],
       "properties": {
         "event_model": {
           "type": "string"
@@ -76,6 +84,30 @@
           "items": {
             "type": "string"
           }
+        },
+        "accepted_input_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "target_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "record_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "prior_result_policy": {
+          "type": "string"
         }
       }
     },
@@ -95,14 +127,14 @@
     "output_contract": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["statuses", "fields"],
+      "required": ["statuses", "fields", "dataset_semantic_types", "presentation_components"],
       "properties": {
         "statuses": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["matched", "not_matched", "error"]
+            "enum": ["matched", "not_matched", "skipped", "error"]
           }
         },
         "fields": {
@@ -111,10 +143,24 @@
           "items": {
             "type": "string"
           }
+        },
+        "dataset_semantic_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "presentation_components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
-    "examples": {
+    "test_vectors": {
       "type": "array",
       "minItems": 1,
       "items": {
@@ -129,8 +175,40 @@
           },
           "expected_status": {
             "type": "string",
-            "enum": ["matched", "not_matched", "error"]
+            "enum": ["matched", "not_matched", "skipped", "error"]
           }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "localized_title": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zh-CN", "en-US"],
+      "properties": {
+        "zh-CN": {
+          "type": "string",
+          "minLength": 3
+        },
+        "en-US": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "localized_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zh-CN", "en-US"],
+      "properties": {
+        "zh-CN": {
+          "type": "string",
+          "minLength": 10
+        },
+        "en-US": {
+          "type": "string",
+          "minLength": 10
         }
       }
     }

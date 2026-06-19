@@ -1,0 +1,26 @@
+{
+  "session_id": "official-factor-session-task-completion",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "text": "请检查 factor spec，并补齐缺口。"
+    },
+    {
+      "id": "assistant-1",
+      "role": "assistant",
+      "text": "我会先检查现有 factor，再补齐缺少的官方 factor。"
+    },
+    {
+      "id": "tool-1",
+      "role": "tool",
+      "tool_name": "exec_command",
+      "text": "python3 -m unittest discover -s tests passed"
+    },
+    {
+      "id": "assistant-2",
+      "role": "assistant",
+      "text": "已完成：新增 factor、补测试，并且验证通过。"
+    }
+  ]
+}

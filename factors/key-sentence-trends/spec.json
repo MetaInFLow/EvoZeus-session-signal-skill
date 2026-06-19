@@ -1,0 +1,47 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.key-sentence-trends",
+  "version": "v0.1.0",
+  "title": "Key sentence trends",
+  "summary": "按时间统计关键句出现趋势，帮助看出用户关注点如何变化。",
+  "title_i18n": {
+    "zh-CN": "关键句趋势",
+    "en-US": "Key sentence trends"
+  },
+  "summary_i18n": {
+    "zh-CN": "按时间统计关键句出现趋势，帮助看出用户关注点如何变化。",
+    "en-US": "Aggregates key sentence trends over time to show how user attention changes."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": ["events[].id", "events[].role", "events[].text"],
+    "accepted_input_kinds": ["session", "project", "scan_record_set"],
+    "target_types": ["session", "project", "scan_record_set"],
+    "record_types": ["session_envelope"],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted events and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": ["matched", "not_matched", "skipped", "error"],
+    "fields": ["scores", "datasets", "presentations", "evidence_refs"],
+    "dataset_semantic_types": ["key_sentence_trend"],
+    "presentation_components": ["builtin.line_chart.v1", "builtin.heatmap.v1", "builtin.table.v1", "builtin.json.v1"]
+  },
+  "test_vectors": [
+    {
+      "name": "key sentence trends by date bucket",
+      "input": "factors/key-sentence-trends/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

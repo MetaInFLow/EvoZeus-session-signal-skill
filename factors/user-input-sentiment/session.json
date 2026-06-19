@@ -1,0 +1,25 @@
+{
+  "session_id": "official-factor-session-user-input-sentiment",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "text": "这个结果不行，刚才还在报错。"
+    },
+    {
+      "id": "assistant-1",
+      "role": "assistant",
+      "text": "我会检查失败原因。"
+    },
+    {
+      "id": "user-2",
+      "role": "user",
+      "text": "谢谢，修完以后效果很好。"
+    },
+    {
+      "id": "user-3",
+      "role": "user",
+      "text": "继续看一下测试结果。"
+    }
+  ]
+}

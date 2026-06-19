@@ -1,0 +1,47 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.repeated-request",
+  "version": "v0.1.0",
+  "title": "Repeated request",
+  "summary": "识别用户是否重复提出同一个还没有解决的请求，并列出对应消息证据。",
+  "title_i18n": {
+    "zh-CN": "重复请求识别",
+    "en-US": "Repeated request"
+  },
+  "summary_i18n": {
+    "zh-CN": "识别用户是否重复提出同一个还没有解决的请求，并列出对应消息证据。",
+    "en-US": "Detects whether the user repeated an unresolved request and returns message evidence."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": ["events[].id", "events[].role", "events[].text"],
+    "accepted_input_kinds": ["session"],
+    "target_types": ["session"],
+    "record_types": ["session_envelope"],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted events and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": ["matched", "not_matched", "skipped", "error"],
+    "fields": ["tags", "scores", "datasets", "presentations", "verdict_signals", "evidence_refs"],
+    "dataset_semantic_types": ["evidence_record_set"],
+    "presentation_components": ["builtin.table.v1", "builtin.json.v1"]
+  },
+  "test_vectors": [
+    {
+      "name": "user asks again",
+      "input": "factors/repeated-request/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

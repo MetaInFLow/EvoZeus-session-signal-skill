@@ -1,0 +1,23 @@
+{
+  "session_id": "official-factor-session-tool-failure-frequency",
+  "events": [
+    {
+      "id": "tool-1",
+      "role": "tool",
+      "tool_name": "exec_command",
+      "text": "pytest failed with assertion error"
+    },
+    {
+      "id": "tool-2",
+      "role": "tool",
+      "tool_name": "browser",
+      "text": "browser timeout while loading local page"
+    },
+    {
+      "id": "tool-3",
+      "role": "tool",
+      "tool_name": "exec_command",
+      "text": "command failed with exit code 1"
+    }
+  ]
+}
