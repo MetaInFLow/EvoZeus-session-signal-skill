@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import re
 from typing import Any, Mapping
 
-from evozeus_factors_official import OfficialFactor, OfficialFactorResult
+from evozeus_session_signal_skill import OfficialFactor, OfficialFactorResult
+from evozeus_session_signal_skill.nlp import event_factor_channel, safe_json_mapping
 
 
-FAILURE_TERMS = ("error", "failed", "failure", "traceback", "exception", "timeout", "exit code")
+FAILURE_STATUSES = {"failed", "failure", "error", "timeout", "cancelled", "canceled"}
+SUCCESS_STATUSES = {"success", "succeeded", "ok", "completed", "done"}
+EXIT_CODE_RE = re.compile(r"\b(?:exit code|exit_code|returncode|Process exited with code)\s*[:=]?\s*(-?\d+)\b", re.I)
 
 OFFICIAL_TOOL_FAILURE_FREQUENCY_SPEC = {
     "schema_version": "official.factor.v0",
@@ -65,10 +69,13 @@ class ToolFailureFrequencyFactor(OfficialFactor):
         for event in context.get("events", []):
             if event.get("role") != "tool":
                 continue
-            text = str(event.get("text", "")).lower()
-            if not any(term in text for term in FAILURE_TERMS):
+            if event_factor_channel(event) not in {"tool_result", "tool_usage"}:
                 continue
-            tool_name = str(event.get("tool_name") or "unknown_tool")
+            if not _is_failed_tool_event(event):
+                continue
+            tool_name = _real_tool_name(event)
+            if not tool_name:
+                continue
             counts[tool_name] += 1
             evidence_by_tool[tool_name].append(str(event.get("id", "")))
 
@@ -127,3 +134,62 @@ class ToolFailureFrequencyFactor(OfficialFactor):
             ],
             evidence_refs=evidence_refs,
         )
+
+
+def _is_failed_tool_event(event: Mapping[str, Any]) -> bool:
+    tool_result = safe_json_mapping(event.get("tool_result"))
+    text_result = safe_json_mapping(event.get("text"))
+    if text_result:
+        tool_result = {**text_result, **dict(tool_result)}
+
+    text = str(event.get("text") or "")
+    wrapper_output = _is_wrapper_output(event)
+    match = EXIT_CODE_RE.search(text)
+    if match:
+        try:
+            return int(match.group(1)) != 0
+        except ValueError:
+            return False
+
+    status = str(tool_result.get("status") or tool_result.get("state") or "").lower()
+    if status in FAILURE_STATUSES:
+        return True
+    if status in SUCCESS_STATUSES and not wrapper_output:
+        return False
+
+    for key in ("exit_code", "exitCode", "returncode", "code"):
+        if key not in tool_result:
+            continue
+        try:
+            code = int(tool_result[key])
+            return code != 0
+        except (TypeError, ValueError):
+            continue
+
+    stderr = str(tool_result.get("stderr") or tool_result.get("error") or "")
+    if stderr.strip() and status not in SUCCESS_STATUSES:
+        return True
+    return False
+
+
+def _real_tool_name(event: Mapping[str, Any]) -> str:
+    tool_name = str(event.get("tool_name") or "")
+    if _is_wrapper_output(event):
+        tool_result = safe_json_mapping(event.get("tool_result"))
+        return str(
+            tool_result.get("name")
+            or tool_result.get("tool_name")
+            or event.get("function_name")
+            or event.get("call_name")
+            or "unknown_tool"
+        )
+    return tool_name or "unknown_tool"
+
+
+def _is_wrapper_output(event: Mapping[str, Any]) -> bool:
+    tool_name = str(event.get("tool_name") or "")
+    event_type = str(event.get("codex_event_type") or "")
+    return tool_name in {"function_call_output", "custom_tool_call_output"} or event_type in {
+        "function_call_output",
+        "custom_tool_call_output",
+    }

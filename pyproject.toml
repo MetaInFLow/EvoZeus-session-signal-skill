@@ -1,9 +1,21 @@
 [project]
-name = "evozeus-factors-official"
+name = "evozeus-session-signal-skill"
 version = "0.1.0"
-description = "Stable Python contract and official factors for EvoZeus Factors."
+description = "Session Signal SKILL and official factor tools for EvoZeus chat review."
 requires-python = ">=3.11"
 
+[project.optional-dependencies]
+nlp = [
+    "scikit-learn>=1.4,<2",
+    "jieba==0.42.1",
+    "rapidfuzz>=3.14,<4",
+    "snownlp>=0.12,<1",
+]
+key-sentence-trends = [
+    "jieba==0.42.1",
+    "rapidfuzz>=3.14,<4",
+]
+
 [tool.evozeus]
-repo_role = "official-factors"
+repo_role = "session-signal-skill"
 default_factor_language = "python"

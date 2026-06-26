@@ -1,0 +1,64 @@
+<factor id="official.repeated-request" version="v0.1.0">
+  <name>
+    <zh>重复请求识别</zh>
+    <en>Repeated request</en>
+  </name>
+  <summary>
+    <zh>用 request signature、TF-IDF/rapidfuzz 相似度和未解决链路识别用户重复提出的同一请求。</zh>
+    <en>Uses request signatures, TF-IDF/rapidfuzz similarity, and unresolved chains to detect repeated user requests.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>user_input</channel>
+    <channel>assistant_result</channel>
+  </input_channels>
+  <outputs>
+    <output>evidence_record_set</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="repeated_request_events" semantic_type="evidence_record_set" primary_key="chain_id" retention="replace_latest_top_n" />
+  </output_datasets>
+  <presentations>
+    <presentation id="repeated_request_table" component_ref="builtin.table.v1" route="drawer" data_ref="repeated_request_events" priority="100" />
+    <presentation id="repeated_request_json" component_ref="builtin.json.v1" route="drawer" data_ref="repeated_request_events" priority="200" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>repeat chain event refs only</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要找用户是否因问题未解决而重复提出同一请求时使用。</zh>
+    <en>Use when finding whether users repeat the same request because the issue is unresolved.</en>
+  </when_to_use>
+  <limitations>
+    <zh>继续、开始、ok 等短续写不会算重复请求；复杂跨主题链路仍可能需要人工复核。</zh>
+    <en>Short continuations such as continue, start, or ok are not repeated requests; complex cross-topic chains may need human review.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存 request signature、相似度、chain id 和 event refs。</zh>
+    <en>Does not store raw body; stores request signatures, similarity scores, chain ids, and event refs only.</en>
+  </privacy>
+  <quality_notes>
+    <note>assistant/task_complete 出现明确解决信号后会清空未解决请求链。</note>
+    <note>相似度阈值偏保守，优先减少误报。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="loop" value="repeated-request">
+      <zh>重复请求</zh>
+      <en>Repeated request</en>
+    </tag>
+  </tag_labels>
+</factor>

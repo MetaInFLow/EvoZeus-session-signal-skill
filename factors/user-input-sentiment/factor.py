@@ -3,44 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Mapping
 
-from evozeus_factors_official import OfficialFactor, OfficialFactorResult
-
-
-POSITIVE_TERMS = (
-    "谢谢",
-    "感谢",
-    "不错",
-    "很好",
-    "可以",
-    "满意",
-    "喜欢",
-    "赞",
-    "thanks",
-    "great",
-    "good",
-    "nice",
-    "love",
-    "works",
-)
-NEGATIVE_TERMS = (
-    "生气",
-    "烦",
-    "糟糕",
-    "不行",
-    "失败",
-    "讨厌",
-    "失望",
-    "太慢",
-    "报错",
-    "不满意",
-    "bad",
-    "terrible",
-    "angry",
-    "frustrated",
-    "fail",
-    "broken",
-    "wrong",
-)
+from evozeus_session_signal_skill import OfficialFactor, OfficialFactorResult
+from evozeus_session_signal_skill.nlp import canonical_text, channel_events, classify_by_examples
 
 
 OFFICIAL_USER_INPUT_SENTIMENT_SPEC = {
@@ -49,14 +13,14 @@ OFFICIAL_USER_INPUT_SENTIMENT_SPEC = {
     "factor_id": "official.user-input-sentiment",
     "version": "v0.1.0",
     "title": "User input sentiment",
-    "summary": "判断用户在会话里表达的是正向、负向还是中性情绪，并保留对应用户消息作为证据。",
+    "summary": "用轻量 NLP 判断用户输入里的满意度、不满风险、问题反馈和纠正请求，并保留事件证据。",
     "title_i18n": {
         "zh-CN": "用户输入情感",
         "en-US": "User input sentiment",
     },
     "summary_i18n": {
-        "zh-CN": "判断用户在会话里表达的是正向、负向还是中性情绪，并保留对应用户消息作为证据。",
-        "en-US": "Classifies user messages as positive, negative, or neutral and keeps message evidence.",
+        "zh-CN": "用轻量 NLP 判断用户输入里的满意度、不满风险、问题反馈和纠正请求，并保留事件证据。",
+        "en-US": "Classifies user input into dissatisfaction risk, problem reports, correction requests, neutral requests, and positive feedback.",
     },
     "compatibility": {"evozeus_protocol": ">=0.1.0"},
     "governance": {"owner": "evozeus-factor-maintainers"},
@@ -97,19 +61,23 @@ class UserInputSentimentFactor(OfficialFactor):
         records: list[Mapping[str, Any]] = []
         evidence_refs: list[Mapping[str, str]] = []
 
-        for event in context.get("events", []):
-            if event.get("role") != "user":
+        for event in channel_events(context.get("events", []), {"user_input"}):
+            text = canonical_text(event)
+            if not text:
                 continue
 
-            sentiment, sentiment_score, confidence, matched_terms = _classify_sentiment(str(event.get("text", "")))
+            classified = _classify_sentiment_kind(text)
+            sentiment_score = _sentiment_score(classified.label, classified.snownlp_score)
             event_id = str(event.get("id", ""))
             records.append(
                 {
                     "event_id": event_id,
-                    "sentiment": sentiment,
+                    "sentiment_kind": classified.label,
                     "sentiment_score": sentiment_score,
-                    "confidence": confidence,
-                    "matched_terms": ", ".join(matched_terms),
+                    "dissatisfaction_score": _dissatisfaction_score(classified.label, sentiment_score),
+                    "confidence": classified.confidence,
+                    "nlp_similarity_score": classified.score,
+                    "nearest_example": classified.nearest_example[:80],
                 }
             )
             if event_id:
@@ -118,27 +86,35 @@ class UserInputSentimentFactor(OfficialFactor):
         if not records:
             return self.build_result(status="not_matched", target_type="session", target_id=session_id)
 
-        distribution = Counter(str(record["sentiment"]) for record in records)
+        distribution = Counter(str(record["sentiment_kind"]) for record in records)
         total = sum(distribution.values())
         distribution_records = [
             {
-                "sentiment": sentiment,
+                    "sentiment_kind": sentiment,
                 "count": int(count),
                 "share": round(float(count) / float(total), 4),
             }
             for sentiment, count in sorted(distribution.items())
         ]
         average_score = sum(float(record["sentiment_score"]) for record in records) / float(len(records))
-        overall_sentiment = _overall_sentiment(average_score)
+        dominant_sentiment_kind = distribution.most_common(1)[0][0]
 
         return self.build_result(
             status="matched",
             target_type="session",
             target_id=session_id,
-            confidence=0.68,
-            tags=[{"type": "user_sentiment", "value": overall_sentiment}],
+            confidence=0.76,
+            tags=[{"type": "user_sentiment", "value": dominant_sentiment_kind}],
             scores={"average_sentiment_score": average_score},
-            statistics={"overall_sentiment": overall_sentiment, "user_turn_count": len(records)},
+            statistics={
+                "dominant_sentiment_kind": dominant_sentiment_kind,
+                "user_turn_count": len(records),
+                "dissatisfaction_turn_count": int(
+                    distribution.get("dissatisfaction", 0)
+                    + distribution.get("problem_report", 0)
+                    + distribution.get("correction_request", 0)
+                ),
+            },
             datasets=[
                 {
                     "id": "user_input_sentiment",
@@ -148,8 +124,9 @@ class UserInputSentimentFactor(OfficialFactor):
                     "records": records,
                     "schema": {
                         "event_id": "string",
-                        "sentiment": "string",
+                        "sentiment_kind": "string",
                         "sentiment_score": "number",
+                        "dissatisfaction_score": "number",
                         "confidence": "number",
                     },
                 },
@@ -157,10 +134,10 @@ class UserInputSentimentFactor(OfficialFactor):
                     "id": "user_sentiment_distribution",
                     "semantic_type": "frequency_distribution",
                     "shape": "record_set",
-                    "primary_key": "sentiment",
+                    "primary_key": "sentiment_kind",
                     "records": distribution_records,
                     "schema": {
-                        "sentiment": "string",
+                        "sentiment_kind": "string",
                         "count": "number",
                         "share": "number",
                     },
@@ -172,14 +149,14 @@ class UserInputSentimentFactor(OfficialFactor):
                     "title": "用户情绪分布",
                     "component_ref": "builtin.bar_chart.v1",
                     "data_ref": "user_sentiment_distribution",
-                    "bindings": {"x": "sentiment", "y": "count"},
+                    "bindings": {"x": "sentiment_kind", "y": "count"},
                     "routes": ["dashboard"],
                     "fallback": ["builtin.table.v1", "builtin.json.v1"],
                     "priority": 75,
                 },
                 {
                     "id": "user_input_sentiment_table",
-                    "title": "用户情绪明细",
+                    "title": "用户满意度/不满风险明细",
                     "component_ref": "builtin.table.v1",
                     "data_ref": "user_input_sentiment",
                     "bindings": {"row_key": "event_id"},
@@ -192,27 +169,57 @@ class UserInputSentimentFactor(OfficialFactor):
         )
 
 
-def _classify_sentiment(value: str) -> tuple[str, float, float, list[str]]:
-    normalized = value.lower()
-    positive_matches = [term for term in POSITIVE_TERMS if term.lower() in normalized]
-    negative_matches = [term for term in NEGATIVE_TERMS if term.lower() in normalized]
-    raw_score = len(positive_matches) - len(negative_matches)
+SENTIMENT_EXAMPLES = {
+    "dissatisfaction": [
+        "这完全不对，我很不满意",
+        "你又搞错了，结果不能接受",
+        "还是没生效，怎么回事",
+        "这次体验很差",
+    ],
+    "problem_report": [
+        "运行失败了，测试还在报错",
+        "页面打不开，日志里有异常",
+        "工具没有返回结果",
+        "部署失败，出现错误",
+    ],
+    "correction_request": [
+        "不对，改动太大了，排版不要大变化",
+        "这个方向不对，重新按我的要求改",
+        "不要这样实现，按原来的结构调整",
+        "你理解错了，改成我说的方案",
+    ],
+    "neutral_request": [
+        "继续看一下测试结果",
+        "帮我检查这个文件",
+        "统计一下所有 session",
+        "把这个 factor 修改一下",
+    ],
+    "positive_feedback": [
+        "谢谢，效果很好",
+        "这次可以，验证通过了",
+        "很好，继续保持这个方向",
+        "thanks, this works well",
+    ],
+}
 
-    if raw_score > 0:
-        sentiment = "positive"
-    elif raw_score < 0:
-        sentiment = "negative"
-    else:
-        sentiment = "neutral"
 
-    sentiment_score = max(-1.0, min(1.0, raw_score / 2.0))
-    confidence = 0.5 if raw_score == 0 else min(0.9, 0.65 + 0.1 * abs(raw_score))
-    return sentiment, sentiment_score, confidence, positive_matches + negative_matches
+def _classify_sentiment_kind(value: str):
+    return classify_by_examples(value, SENTIMENT_EXAMPLES)
 
 
-def _overall_sentiment(score: float) -> str:
-    if score > 0.15:
-        return "positive"
-    if score < -0.15:
-        return "negative"
-    return "neutral"
+def _sentiment_score(label: str, snownlp_score: float) -> float:
+    base = {
+        "positive_feedback": 0.8,
+        "neutral_request": 0.0,
+        "problem_report": -0.45,
+        "correction_request": -0.65,
+        "dissatisfaction": -0.85,
+    }.get(label, 0.0)
+    snow_adjustment = (snownlp_score - 0.5) * 0.3
+    return round(max(-1.0, min(1.0, base + snow_adjustment)), 4)
+
+
+def _dissatisfaction_score(label: str, sentiment_score: float) -> float:
+    if label in {"dissatisfaction", "problem_report", "correction_request"}:
+        return round(min(1.0, abs(sentiment_score)), 4)
+    return 0.0

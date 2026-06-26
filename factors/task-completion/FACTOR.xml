@@ -1,0 +1,65 @@
+<factor id="official.task-completion" version="v0.1.0">
+  <name>
+    <zh>任务完成判断</zh>
+    <en>Task completion</en>
+  </name>
+  <summary>
+    <zh>结合 Codex task_complete、结构化工具失败和 final assistant NLP verdict 判断任务完成、未完成、阻塞或未知。</zh>
+    <en>Combines Codex task_complete, structured tool failures, and final assistant NLP verdicts to classify tasks as completed, not completed, blocked, or unknown.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>assistant_result</channel>
+    <channel>tool_result</channel>
+  </input_channels>
+  <outputs>
+    <output>task_completion_verdict</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="task_completion_verdict" semantic_type="task_completion_verdict" primary_key="verdict_id" retention="replace_latest" />
+  </output_datasets>
+  <presentations>
+    <presentation id="task_completion_table" component_ref="builtin.table.v1" route="dashboard" data_ref="task_completion_verdict" priority="60" />
+    <presentation id="task_completion_json" component_ref="builtin.json.v1" route="drawer" data_ref="task_completion_verdict" priority="160" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>latest decisive event ref only</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要给 session 打 completed、not_completed、blocked 或 unknown 标签时使用。</zh>
+    <en>Use when assigning completed, not_completed, blocked, or unknown verdicts to sessions.</en>
+  </when_to_use>
+  <limitations>
+    <zh>NLP verdict 只看局部 final assistant 语义，复杂长会话仍需结合人工复核。</zh>
+    <en>The NLP verdict considers local final assistant semantics; complex long sessions may still require human review.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存 verdict、分数、短 preview 和 event ref。</zh>
+    <en>Does not store raw body; stores verdicts, scores, short previews, and event refs only.</en>
+  </privacy>
+  <quality_notes>
+    <note>task_complete 是强完成信号；之后如果出现结构化工具失败，以最新信号为准。</note>
+    <note>blocked 与 not_completed 分开，便于发现需要用户补信息的 session。</note>
+    <note>blocked/not_completed 必须来自明确阻塞、缺权限、测试仍失败或未完成语义；普通进展句、批处理计划和 “我会继续处理” 不应作为失败证据。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="task_completion" value="completed">
+      <zh>任务完成</zh>
+      <en>Task completed</en>
+    </tag>
+  </tag_labels>
+</factor>

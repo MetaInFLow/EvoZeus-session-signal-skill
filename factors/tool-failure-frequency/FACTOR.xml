@@ -1,0 +1,67 @@
+<factor id="official.tool-failure-frequency" version="v0.1.0">
+  <name>
+    <zh>工具失败频率</zh>
+    <en>Tool failure frequency</en>
+  </name>
+  <summary>
+    <zh>关联 tool call/output，基于结构化 status、exit code、stderr 或 error 字段统计真实工具失败。</zh>
+    <en>Associates tool call/output records and counts real tool failures from structured status, exit code, stderr, or error fields.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>tool_usage</channel>
+    <channel>tool_result</channel>
+  </input_channels>
+  <outputs>
+    <output>frequency_distribution</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="tool_failure_frequency" semantic_type="frequency_distribution" primary_key="tool_name" retention="replace_latest_top_n" />
+  </output_datasets>
+  <presentations>
+    <presentation id="tool_failure_bar_chart" component_ref="builtin.bar_chart.v1" route="dashboard" data_ref="tool_failure_frequency" priority="90" />
+    <presentation id="tool_failure_table" component_ref="builtin.table.v1" route="drawer" data_ref="tool_failure_frequency" priority="91" />
+    <presentation id="tool_failure_json" component_ref="builtin.json.v1" route="drawer" data_ref="tool_failure_frequency" priority="191" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>failed tool output event refs only</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要定位高频失败工具和对应 session/event 时使用。</zh>
+    <en>Use when locating tools with frequent failures and the related sessions/events.</en>
+  </when_to_use>
+  <limitations>
+    <zh>没有结构化失败状态或 exit code 的普通文本不会直接算作失败。</zh>
+    <en>Plain text without structured failure status or exit code is not counted as a failure.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存工具名、失败计数和 sample event ids。</zh>
+    <en>Does not store raw body; stores tool names, failure counts, and sample event ids only.</en>
+  </privacy>
+  <quality_notes>
+    <note>function_call_output/custom_tool_call_output 是 wrapper，不作为真实 tool 名。</note>
+    <note>Codex wrapper output 中的 “Process exited with code N” 必须解析为内层工具退出码；wrapper 自身 status=success 不代表命令成功。</note>
+    <note>wrapper output 应优先回落到关联 function_call 的真实工具名；缺失时才使用 unknown_tool。</note>
+    <note>stderr/error 字段非空且未标记 success 时算失败。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="tool_failure" value="frequency">
+      <zh>工具失败频率</zh>
+      <en>Tool failure frequency</en>
+    </tag>
+  </tag_labels>
+</factor>
