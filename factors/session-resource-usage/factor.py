@@ -4,10 +4,12 @@ from collections import Counter, defaultdict
 import re
 from typing import Any, Iterable, Mapping
 
-from evozeus_factors_official import OfficialFactor, OfficialFactorResult
+from evozeus_session_signal_skill import OfficialFactor, OfficialFactorResult
+from evozeus_session_signal_skill.nlp import event_factor_channel
 
 
 SKILL_PATTERN = re.compile(r"(?:skill:|\$)([A-Za-z0-9_.:-]+)")
+MCP_TOOL_PATTERN = re.compile(r"\bmcp__([A-Za-z0-9_:-]+)__([A-Za-z0-9_:-]+)\b")
 RESOURCE_ORDER = {"tool": 0, "skill": 1, "mcp": 2, "plugin": 3, "connector": 4}
 
 
@@ -43,7 +45,7 @@ OFFICIAL_SESSION_RESOURCE_USAGE_SPEC = {
     "output_contract": {
         "statuses": ["matched", "not_matched", "skipped", "error"],
         "fields": ["tags", "scores", "statistics", "datasets", "presentations", "evidence_refs"],
-        "dataset_semantic_types": ["session_resource_usage", "frequency_distribution"],
+        "dataset_semantic_types": ["session_resource_usage", "frequency_distribution", "diagnostic_record_set"],
         "presentation_components": ["builtin.bar_chart.v1", "builtin.table.v1", "builtin.json.v1"],
     },
     "test_vectors": [
@@ -63,15 +65,21 @@ class SessionResourceUsageFactor(OfficialFactor):
     def evaluate(self, context: Mapping[str, Any]) -> OfficialFactorResult:
         session_id = str(context.get("session_id", ""))
         counts: Counter[tuple[str, str]] = Counter()
+        diagnostics: Counter[tuple[str, str]] = Counter()
         evidence_by_resource: dict[tuple[str, str], list[str]] = defaultdict(list)
 
         for event in context.get("events", []):
+            if event_factor_channel(event) == "context":
+                continue
             event_id = str(event.get("id", ""))
-            for resource_type, resource_name in _resources_for_event(event):
+            resources, ignored = _resources_for_event_with_diagnostics(event)
+            for resource_type, resource_name in resources:
                 key = (resource_type, resource_name)
                 counts[key] += 1
                 if event_id:
                     evidence_by_resource[key].append(event_id)
+            for resource_name, reason in ignored:
+                diagnostics[(resource_name, reason)] += 1
 
         if not counts:
             return self.build_result(status="not_matched", target_type="session", target_id=session_id)
@@ -104,6 +112,10 @@ class SessionResourceUsageFactor(OfficialFactor):
         distribution_records = [
             {"resource_type": resource_type, "count": int(count)}
             for resource_type, count in sorted(type_distribution.items(), key=lambda item: RESOURCE_ORDER.get(item[0], 99))
+        ]
+        diagnostic_records = [
+            {"resource_name": resource_name, "reason": reason, "count": int(count)}
+            for (resource_name, reason), count in sorted(diagnostics.items())
         ]
 
         return self.build_result(
@@ -143,6 +155,18 @@ class SessionResourceUsageFactor(OfficialFactor):
                         "count": "number",
                     },
                 },
+                {
+                    "id": "session_resource_diagnostics",
+                    "semantic_type": "diagnostic_record_set",
+                    "shape": "record_set",
+                    "primary_key": "resource_name,reason",
+                    "records": diagnostic_records,
+                    "schema": {
+                        "resource_name": "string",
+                        "reason": "string",
+                        "count": "number",
+                    },
+                },
             ],
             presentations=[
                 {
@@ -171,19 +195,30 @@ class SessionResourceUsageFactor(OfficialFactor):
 
 
 def _resources_for_event(event: Mapping[str, Any]) -> Iterable[tuple[str, str]]:
+    resources, _ = _resources_for_event_with_diagnostics(event)
+    return resources
+
+
+def _resources_for_event_with_diagnostics(
+    event: Mapping[str, Any],
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
     resources: set[tuple[str, str]] = set()
+    diagnostics: list[tuple[str, str]] = []
 
     for tool_name in _field_values(event, "tool_name", "tool", "tools"):
+        if tool_name in {"function_call_output", "custom_tool_call_output"}:
+            diagnostics.append((tool_name, "wrapper_tool_name"))
+            continue
         resources.add(("tool", tool_name))
         mcp_server = _mcp_server_from_tool_name(tool_name)
         if mcp_server:
             resources.add(("mcp", mcp_server))
 
-    if event.get("role") == "tool" and not any(resource_type == "tool" for resource_type, _ in resources):
-        resources.add(("tool", "unknown_tool"))
-
     for skill_name in _field_values(event, "skill_name", "skill", "skills"):
-        resources.add(("skill", skill_name))
+        if _is_valid_skill_name(skill_name, explicit=True):
+            resources.add(("skill", skill_name))
+        else:
+            diagnostics.append((skill_name, "invalid_skill_name"))
 
     for mcp_server in _field_values(event, "mcp_server", "mcp_servers"):
         resources.add(("mcp", mcp_server))
@@ -194,11 +229,17 @@ def _resources_for_event(event: Mapping[str, Any]) -> Iterable[tuple[str, str]]:
     for connector_name in _field_values(event, "connector", "connector_name", "connectors"):
         resources.add(("connector", connector_name))
 
-    text = str(event.get("text", ""))
+    text = str(event.get("text", ""))[:2000]
     for skill_name in SKILL_PATTERN.findall(text):
-        resources.add(("skill", skill_name))
+        if _is_valid_skill_name(skill_name, explicit=False):
+            resources.add(("skill", skill_name))
+        else:
+            diagnostics.append((skill_name, "skill_noise"))
+    for mcp_server, mcp_tool in MCP_TOOL_PATTERN.findall(text):
+        resources.add(("mcp", mcp_server))
+        resources.add(("tool", f"mcp__{mcp_server}__{mcp_tool}"))
 
-    return sorted(resources)
+    return sorted(resources), diagnostics
 
 
 def _field_values(event: Mapping[str, Any], *field_names: str) -> list[str]:
@@ -219,3 +260,20 @@ def _mcp_server_from_tool_name(tool_name: str) -> str:
     if len(parts) < 3:
         return ""
     return parts[1]
+
+
+def _is_valid_skill_name(value: str, *, explicit: bool) -> bool:
+    if not value or value.isdigit():
+        return False
+    if value in {"SkillName", "HOME", "CODEX_HOME", "PWCLI"}:
+        return False
+    if value.isupper() and "_" in value:
+        return False
+    if value.startswith("-") or value.endswith("-"):
+        return False
+    if ":" in value:
+        left, _, right = value.partition(":")
+        return bool(left and right and _is_valid_skill_name(right, explicit=explicit))
+    if "-" in value:
+        return bool(re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)+", value))
+    return explicit and bool(re.fullmatch(r"[a-z][a-z0-9_]*", value))

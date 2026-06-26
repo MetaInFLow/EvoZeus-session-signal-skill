@@ -1,0 +1,66 @@
+<factor id="official.usage-sentence-cloud" version="v0.1.0">
+  <name>
+    <zh>高频使用句云</zh>
+    <en>Usage sentence cloud</en>
+  </name>
+  <summary>
+    <zh>按 user、assistant、tool 三类 chat role 聚合高频短句，过滤 JSON key、路径、URL、环境变量和系统模板碎片。</zh>
+    <en>Aggregates frequent short phrases by user, assistant, and tool chat roles while filtering JSON keys, paths, URLs, environment variables, and system template fragments.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>user_input</channel>
+    <channel>assistant_result</channel>
+    <channel>tool_result</channel>
+  </input_channels>
+  <outputs>
+    <output>high_frequency_phrase_set</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="usage_sentence_cloud" semantic_type="high_frequency_phrase_set" primary_key="sentence_id" retention="replace_latest_top_n" />
+  </output_datasets>
+  <presentations>
+    <presentation id="usage_sentence_word_cloud" component_ref="builtin.word_cloud.v1" route="dashboard" data_ref="usage_sentence_cloud" priority="80" />
+    <presentation id="usage_sentence_table" component_ref="builtin.table.v1" route="drawer" data_ref="usage_sentence_cloud" priority="81" />
+    <presentation id="usage_sentence_json" component_ref="builtin.json.v1" route="drawer" data_ref="usage_sentence_cloud" priority="181" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>top phrase sample event refs only</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要看用户、助手和工具输出各自的高频表达时使用。</zh>
+    <en>Use when comparing frequent phrases across user, assistant, and tool outputs.</en>
+  </when_to_use>
+  <limitations>
+    <zh>句云只保留 top N 聚合记录，不适合还原完整对话。</zh>
+    <en>The phrase cloud stores only top-N aggregate records and is not intended to reconstruct full conversations.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存短句聚合、计数、role 和 sample event refs。</zh>
+    <en>Does not store raw body; stores phrase aggregates, counts, role, and sample event refs only.</en>
+  </privacy>
+  <quality_notes>
+    <note>继续、开始、ok 等短续写不进入高频短句。</note>
+    <note>按 chat_role 聚合，避免 user 高频请求和 assistant/tool 模板输出混在一起。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="usage_sentence" value="high_frequency">
+      <zh>高频短句</zh>
+      <en>High frequency phrase</en>
+    </tag>
+  </tag_labels>
+</factor>

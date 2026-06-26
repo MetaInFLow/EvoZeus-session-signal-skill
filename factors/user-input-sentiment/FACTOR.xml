@@ -1,0 +1,66 @@
+<factor id="official.user-input-sentiment" version="v0.1.0">
+  <name>
+    <zh>用户输入情感</zh>
+    <en>User input sentiment</en>
+  </name>
+  <summary>
+    <zh>用轻量 NLP 判断用户输入里的满意度、不满风险、问题反馈和纠正请求，并保留事件证据。</zh>
+    <en>Classifies user input into dissatisfaction risk, problem reports, correction requests, neutral requests, and positive feedback.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>user_input</channel>
+  </input_channels>
+  <outputs>
+    <output>user_sentiment</output>
+    <output>frequency_distribution</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="user_input_sentiment" semantic_type="user_sentiment" primary_key="event_id" retention="replace_latest" />
+    <dataset id="user_sentiment_distribution" semantic_type="frequency_distribution" primary_key="sentiment_kind" retention="replace_latest" />
+  </output_datasets>
+  <presentations>
+    <presentation id="user_sentiment_distribution_chart" component_ref="builtin.bar_chart.v1" route="dashboard" data_ref="user_sentiment_distribution" priority="75" />
+    <presentation id="user_input_sentiment_table" component_ref="builtin.table.v1" route="drawer" data_ref="user_input_sentiment" priority="76" />
+    <presentation id="user_input_sentiment_json" component_ref="builtin.json.v1" route="drawer" data_ref="user_input_sentiment" priority="176" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>event refs only; no raw body</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要定位用户不满、问题反馈、纠正请求和正向反馈的 session 时使用。</zh>
+    <en>Use when finding sessions with dissatisfaction risk, problem reports, correction requests, or positive feedback.</en>
+  </when_to_use>
+  <limitations>
+    <zh>轻量 NLP 适合本地批量扫描，不等同于人工情绪复盘；短句和反讽仍可能误判。</zh>
+    <en>Lightweight NLP is designed for local batch scanning and is not a full human sentiment review; short or ironic turns can still be misclassified.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存 event ref、短 preview、分类、分数和聚合分布。</zh>
+    <en>Does not store raw body; stores event refs, short previews, labels, scores, and aggregate distributions only.</en>
+  </privacy>
+  <quality_notes>
+    <note>AGENTS、environment、goal context 和 image payload 必须由 scanner 标为 context 后过滤。</note>
+    <note>problem_report 和 correction_request 都属于不满风险，但不是直接关键词负面情绪。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="user_sentiment" value="dissatisfaction">
+      <zh>用户不满</zh>
+      <en>User dissatisfaction</en>
+    </tag>
+  </tag_labels>
+</factor>

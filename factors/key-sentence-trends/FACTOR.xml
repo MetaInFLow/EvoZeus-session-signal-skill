@@ -1,0 +1,67 @@
+<factor id="official.key-sentence-trends" version="v0.1.0">
+  <name>
+    <zh>关键句趋势</zh>
+    <en>Key sentence trends</en>
+  </name>
+  <summary>
+    <zh>按 chat role 和日期聚合 action + object、negation + object、sequence + action、output + object 类型关键句。</zh>
+    <en>Aggregates action-object, negation-object, sequence-action, and output-object key sentences by chat role and date bucket.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>user_input</channel>
+    <channel>assistant_result</channel>
+    <channel>tool_result</channel>
+  </input_channels>
+  <outputs>
+    <output>key_sentence_trend</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="key_sentence_trends" semantic_type="key_sentence_trend" primary_key="date_bucket,chat_role,cluster_label" retention="replace_latest_top_n" />
+  </output_datasets>
+  <presentations>
+    <presentation id="key_sentence_line" component_ref="builtin.line_chart.v1" route="dashboard" data_ref="key_sentence_trends" priority="70" />
+    <presentation id="key_sentence_heatmap" component_ref="builtin.heatmap.v1" route="dashboard" data_ref="key_sentence_trends" priority="71" />
+    <presentation id="key_sentence_table" component_ref="builtin.table.v1" route="drawer" data_ref="key_sentence_trends" priority="72" />
+    <presentation id="key_sentence_json" component_ref="builtin.json.v1" route="drawer" data_ref="key_sentence_trends" priority="172" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>cluster sample event refs only</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要看关键请求、约束、输出目标随时间和 role 变化时使用。</zh>
+    <en>Use when tracking key requests, constraints, and output goals over time and by role.</en>
+  </when_to_use>
+  <limitations>
+    <zh>依存式规则是轻量近似，不能替代完整 dependency parser。</zh>
+    <en>The dependency-like rules are lightweight approximations and do not replace a full dependency parser.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存 cluster label、role、date bucket、计数和 event refs。</zh>
+    <en>Does not store raw body; stores cluster labels, role, date buckets, counts, and event refs only.</en>
+  </privacy>
+  <quality_notes>
+    <note>中文分词依赖 jieba，聚类依赖 rapidfuzz。</note>
+    <note>date bucket 必须来自 scanner timestamp 或 metadata，不再默认 unknown。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="key_sentence" value="trend">
+      <zh>关键句趋势</zh>
+      <en>Key sentence trend</en>
+    </tag>
+  </tag_labels>
+</factor>

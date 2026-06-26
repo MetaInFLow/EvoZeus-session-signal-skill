@@ -7,7 +7,7 @@
 
 ## 背景
 
-`evozeus-factors-official` 当前只定义最小 Python `OfficialFactor` 抽象、official spec schema 和 official factors。随着 `evozeus-infra` 承接 scanner / runner / ledger / report，Factor 的输入和输出边界需要升级：
+`evozeus-session-signal-skill` 当前只定义最小 Python `OfficialFactor` 抽象、official spec schema 和 official factors。随着 `evozeus-infra` 承接 scanner / runner / ledger / report，Factor 的输入和输出边界需要升级：
 
 ```text
 Scanner / Ledger

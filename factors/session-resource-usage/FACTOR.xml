@@ -1,0 +1,70 @@
+<factor id="official.session-resource-usage" version="v0.1.0">
+  <name>
+    <zh>会话资源使用</zh>
+    <en>Session resource usage</en>
+  </name>
+  <summary>
+    <zh>提取会话中真实使用的 tool、verified skill、MCP server、plugin 和 connector，并把 skill 噪声写入 diagnostics。</zh>
+    <en>Extracts actual tools, verified skills, MCP servers, plugins, and connectors while placing skill noise into diagnostics.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>assistant_result</channel>
+    <channel>tool_usage</channel>
+    <channel>tool_result</channel>
+  </input_channels>
+  <outputs>
+    <output>session_resource_usage</output>
+    <output>frequency_distribution</output>
+    <output>diagnostic_record_set</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="session_resource_usage" semantic_type="session_resource_usage" primary_key="resource_key" retention="replace_latest_top_n" />
+    <dataset id="session_resource_type_distribution" semantic_type="frequency_distribution" primary_key="resource_type" retention="replace_latest" />
+    <dataset id="session_resource_diagnostics" semantic_type="diagnostic_record_set" primary_key="resource_name,reason" retention="replace_latest_top_n" />
+  </output_datasets>
+  <presentations>
+    <presentation id="session_resource_type_chart" component_ref="builtin.bar_chart.v1" route="dashboard" data_ref="session_resource_type_distribution" priority="72" />
+    <presentation id="session_resource_usage_table" component_ref="builtin.table.v1" route="drawer" data_ref="session_resource_usage" priority="73" />
+    <presentation id="session_resource_json" component_ref="builtin.json.v1" route="drawer" data_ref="session_resource_usage" priority="173" />
+  </presentations>
+  <dependencies>
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>sample event ids per resource</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要审计会话用了哪些工具、skill、MCP server、plugin 或 connector 时使用。</zh>
+    <en>Use when auditing which tools, skills, MCP servers, plugins, or connectors were used in a session.</en>
+  </when_to_use>
+  <limitations>
+    <zh>skill 只认明确字段或合法声明格式，环境变量和占位符不会算作 verified skill。</zh>
+    <en>Skills are counted only from explicit fields or valid declarations; environment variables and placeholders are not verified skills.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存 raw body，只保存资源名、计数、sample event ids 和 diagnostics。</zh>
+    <en>Does not store raw body; stores resource names, counts, sample event ids, and diagnostics only.</en>
+  </privacy>
+  <quality_notes>
+    <note>CODEX_HOME、HOME、PWCLI、SkillName、1、2 属于 skill_noise diagnostics。</note>
+    <note>function_call_output 等 wrapper 名称不作为真实 tool 名。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="session_resource_usage" value="tools-skills-mcp">
+      <zh>资源使用</zh>
+      <en>Resource usage</en>
+    </tag>
+  </tag_labels>
+</factor>
