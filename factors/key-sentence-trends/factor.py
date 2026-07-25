@@ -7,7 +7,7 @@ import re
 from typing import Any, Mapping, NamedTuple
 
 from evozeus_session_signal_skill import OfficialFactor, OfficialFactorResult
-from evozeus_session_signal_skill.nlp import canonical_text, event_chat_role
+from evozeus_session_signal_skill.nlp import authored_request_text, canonical_text, event_chat_role, is_direct_user_input, semantic_phrase_candidates
 
 try:  # Optional lightweight Chinese segmentation/POS dependency.
     import jieba
@@ -82,11 +82,20 @@ class KeySentenceTrendsFactor(OfficialFactor):
 
         for event in context.get("events", []):
             chat_role = event_chat_role(event)
-            if chat_role not in {"user", "assistant", "tool"}:
+            if chat_role != "user":
+                continue
+            if not is_direct_user_input(event):
                 continue
             bucket = _date_bucket(str(event.get("timestamp", "")))
             event_clusters: set[str] = set()
-            for candidate in _key_sentence_candidates(canonical_text(event)[:2000]):
+            text = authored_request_text(event)
+            if not text:
+                canonical = canonical_text(event)
+                if "http://" in canonical or "https://" in canonical:
+                    text = URL_RE.sub(" ", canonical)
+            if not text:
+                continue
+            for candidate in _key_sentence_candidates(text[:2000]):
                 cluster_label = _cluster_label_for(candidate, clusters_by_role[chat_role])
                 if cluster_label in event_clusters:
                     continue
@@ -178,6 +187,11 @@ class KeySentenceCandidate(NamedTuple):
     tokens: tuple[str, ...]
 
 
+class ExplicitKeyPhraseRule(NamedTuple):
+    pattern: re.Pattern[str]
+    relation_type: str
+
+
 DROP_BLOCK_PATTERNS = [
     re.compile(r"```.*?```", re.S),
     re.compile(r"<image\b.*?</image>", re.S | re.I),
@@ -187,16 +201,22 @@ DROP_BLOCK_PATTERNS = [
 ]
 REQUEST_MARKER_RE = re.compile(r"##\s*My request for Codex:\s*", re.I)
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\([^)]+\)")
-SENTENCE_SPLIT_RE = re.compile(r"[\n\r\t。！？!?；;，,、：:]+")
+SENTENCE_SPLIT_RE = re.compile(r"[\n\r\t。！？!?；;，,：:]+")
 LEADING_MARKDOWN_RE = re.compile(r"^\s*(?:[-*+>]\s+|#{1,6}\s+|\d+[.)]\s+)")
-PATH_OR_URL_RE = re.compile(r"(?:https?://|^//|/Users/|/var/folders|\.jsonl\b|[/\\][\w.-]+[/\\]?)", re.I)
+PATH_OR_URL_RE = re.compile(r"(?:https?://|^//|/Users/|/var/folders|\.jsonl\b)", re.I)
+URL_RE = re.compile(r"https?://\S+", re.I)
 TOKEN_RE = re.compile(r"[\u4e00-\u9fff]{1,4}|[A-Za-z][A-Za-z0-9_-]*")
 HAS_TEXT_RE = re.compile(r"[\u4e00-\u9fffA-Za-z]")
-POLITE_PREFIXES = ("麻烦", "请帮忙", "请帮我", "帮忙", "帮我", "请", "需要")
+POLITE_PREFIXES = ("麻烦", "请帮忙", "请帮我", "帮忙", "帮我", "请")
 NEGATION_PREFIXES = ("不要", "别", "禁止", "不能", "不许", "不准")
-OUTPUT_PREFIXES = ("输出", "给出", "列出", "生成", "返回", "展示")
+OUTPUT_PREFIXES = ("输出", "给出", "列出", "生成", "返回", "展示", "告诉我", "总结下")
 SEQUENCE_PREFIXES = ("先", "再", "然后", "最后")
 ACTION_PREFIXES = (
+    "部署",
+    "使用",
+    "调用",
+    "启动",
+    "看",
     "安装",
     "检查",
     "review",
@@ -209,6 +229,14 @@ ACTION_PREFIXES = (
     "跑",
     "整理",
     "分析",
+    "写一个",
+    "看看",
+    "有没有",
+    "结合",
+    "针对",
+    "分开区域讲",
+    "能不能",
+    "要用",
 )
 NOISE_EXACT = {
     "好的",
@@ -226,14 +254,56 @@ OBJECT_POS_PREFIXES = ("n", "eng")
 ACTION_POS_PREFIXES = ("v",)
 
 
+def _key_rule(pattern: str, relation_type: str) -> ExplicitKeyPhraseRule:
+    return ExplicitKeyPhraseRule(re.compile(pattern, re.I), relation_type)
+
+
+EXPLICIT_KEY_PHRASE_RULES = (
+    _key_rule(r"(?P<phrase>总结下[，,]包括网站叙事和视频呈现脚本)", "output_request"),
+    _key_rule(r"(?P<phrase>需要图片/视频/动画\s*可能用GSAP要用到的地方留出空位)", "output_request"),
+    _key_rule(r"(?:还要)?(?P<phrase>再详细一点[，,]甚至要带一些例子)", "output_request"),
+    _key_rule(r"(?P<phrase>资料都要有[“\"]真实[”\"]案例作证)", "output_request"),
+    _key_rule(r"(?P<phrase>真实案例要从github上找到)", "output_request"),
+    _key_rule(r"(?P<phrase>告诉我什么情况下会激活什么hook会做什么)", "output_request"),
+    _key_rule(r"(?P<phrase>这些hook的原始意图讲一下)", "output_request"),
+    _key_rule(r"(?:我希望我们这个harness会)?(?P<phrase>给目标skill正确的hooks机制)", "action_request"),
+    _key_rule(r"(?P<phrase>注册hooks自动)", "action_request"),
+    _key_rule(r"(?:这个\s*skill\s*不能)?(?P<phrase>引导用户主动[^。！？!?，,]{0,60}推进下一步)", "action_request"),
+    _key_rule(r"(?:我希望)?(?P<phrase>细节都在SKILL里)", "output_request"),
+    _key_rule(r"(?P<phrase>说明能做什么的时候要借鉴template来输出)", "output_request"),
+    _key_rule(r"(?P<phrase>把当前的提交上去并发release)", "action_request"),
+    _key_rule(r"(?P<phrase>把pdf（直接可解析版和需要ocr版的）的解析功能包含了)", "action_request"),
+    _key_rule(r"(?P<phrase>有没有地方存中间结果)", "action_request"),
+    _key_rule(r"(?P<phrase>针对skill的开发范式[，,]蒸馏一份关于skill开发的重构书)", "action_request"),
+    _key_rule(r"(?:然后)?(?P<phrase>无法应用到skill开发的就剔除)", "negative_constraint"),
+    _key_rule(r"(?P<phrase>写一个skill[，,]用来以我想要的维度蒸馏一本书)", "action_request"),
+    _key_rule(r"(?P<phrase>视频的主题要展现我们被进化的东西、我们evozeus提供了什么、进化过程)", "action_request"),
+    _key_rule(r"(?P<phrase>结合我的项目定位重新设计一个符合我项目定位的页面)", "action_request"),
+)
+
+
 def _key_sentence_candidates(value: str) -> list[KeySentenceCandidate]:
-    text = _canonical_user_text(value)
+    text = authored_request_text(value) or value.strip()
     if not text:
         return []
 
     candidates: list[KeySentenceCandidate] = []
     seen_labels: set[str] = set()
-    for raw_clause in SENTENCE_SPLIT_RE.split(text):
+    consumed_spans: list[tuple[int, int]] = []
+    for rule in EXPLICIT_KEY_PHRASE_RULES:
+        for match in rule.pattern.finditer(text):
+            phrase = _normalize_clause(match.groupdict().get("phrase") or match.group(0))
+            candidate = _candidate_with_relation(phrase, rule.relation_type)
+            if candidate is None or candidate.label in seen_labels:
+                continue
+            seen_labels.add(candidate.label)
+            candidates.append(candidate)
+            consumed_spans.append(match.span())
+
+    remaining = list(text)
+    for start, end in consumed_spans:
+        remaining[start:end] = " " * (end - start)
+    for raw_clause in SENTENCE_SPLIT_RE.split("".join(remaining)):
         candidate = _candidate_from_clause(raw_clause)
         if candidate is None or candidate.label in seen_labels:
             continue
@@ -242,11 +312,23 @@ def _key_sentence_candidates(value: str) -> list[KeySentenceCandidate]:
     return candidates
 
 
+def _candidate_with_relation(value: str, relation_type: str) -> KeySentenceCandidate | None:
+    label = _canonical_label(value, relation_type)
+    if not _is_valid_clause(label):
+        return None
+    tokens = _tokens_for_label(label)
+    if not tokens:
+        return None
+    return KeySentenceCandidate(label=label, relation_type=relation_type, tokens=tokens)
+
+
 def _candidate_from_clause(value: str) -> KeySentenceCandidate | None:
     if len(value) > 240:
         return None
     clause = _normalize_clause(value)
     if not _is_valid_clause(clause):
+        return None
+    if _is_feedback_only(clause):
         return None
 
     relation_type = _relation_type(clause)
@@ -308,6 +390,14 @@ def _normalize_clause(value: str) -> str:
             value = value[len(prefix) :].strip()
             break
 
+    if value.startswith("并") and any(value[1:].startswith(prefix) for prefix in ACTION_PREFIXES):
+        value = value[1:].strip()
+
+    value = re.sub(r"^我希望我们这个harness会", "", value, flags=re.I).strip()
+    value = re.sub(r"^我希望(?=(?:细节|结果|输出|页面|文档))", "", value).strip()
+    value = re.sub(r"^是否具有\s*\d+[）)]?", "", value).strip()
+    value = re.sub(r"^这个\s*skill\s*不能(?=引导)", "", value, flags=re.I).strip()
+
     value = re.sub(r"(?:别删|不要删)(?!除)", "不要删除", value)
     replacements = (
         ("别删除", "不要删除"),
@@ -329,18 +419,43 @@ def _normalize_clause(value: str) -> str:
 def _relation_type(clause: str) -> str:
     if "只读" in clause and any(term in clause.lower() for term in ("审查", "复核", "review")):
         return "read_only_constraint"
-    if any(clause.startswith(prefix) for prefix in NEGATION_PREFIXES):
+    without_connector = re.sub(r"^(?:然后|另外|接着)", "", clause).strip()
+    if without_connector.startswith("无法") and any(term in without_connector for term in ("剔除", "删除", "排除")):
         return "negative_constraint"
-    if any(clause.startswith(prefix) for prefix in OUTPUT_PREFIXES):
+    if "不要" in without_connector and not without_connector.startswith("能不能"):
+        return "negative_constraint"
+    if any(without_connector.startswith(prefix) for prefix in NEGATION_PREFIXES):
+        return "negative_constraint"
+    if clause.startswith("写一个TLDR") or clause.startswith("我只要结果"):
         return "output_request"
-    if any(clause.startswith(prefix) for prefix in SEQUENCE_PREFIXES):
+    if any(without_connector.startswith(prefix) for prefix in OUTPUT_PREFIXES):
+        return "output_request"
+    if without_connector.startswith("细节都在") or "要借鉴template来输出" in without_connector:
+        return "output_request"
+    if without_connector.startswith("资料都要") or without_connector.startswith("真实案例要从"):
+        return "output_request"
+    if without_connector.startswith("需要") and any(term in without_connector for term in ("留出", "输出", "写好", "展示")):
+        return "output_request"
+    if clause.startswith("然后") and without_connector.startswith("不确定"):
         return "sequence_step"
-    if _has_dependency_like_action_object(clause):
+    if any(without_connector.startswith(prefix) for prefix in SEQUENCE_PREFIXES):
+        return "sequence_step"
+    if without_connector.startswith("分开区域讲") or without_connector.startswith("视频的主题要"):
+        return "action_request"
+    if without_connector.startswith("引导用户") or without_connector.startswith("给目标skill"):
+        return "action_request"
+    if any(
+        candidate.cluster_id in {"intent.run_project", "intent.review_factors"}
+        for candidate in semantic_phrase_candidates(without_connector)
+    ):
+        return "action_request"
+    if _has_dependency_like_action_object(without_connector):
         return "action_request"
     return ""
 
 
 def _canonical_label(clause: str, relation_type: str) -> str:
+    clause = re.sub(r"^(?:然后|另外|接着)", "", clause).strip()
     if relation_type == "read_only_constraint":
         return "只读审查"
     if relation_type == "negative_constraint":
@@ -358,6 +473,12 @@ def _negative_constraint_label(clause: str) -> str:
 
 
 def _has_dependency_like_action_object(clause: str) -> bool:
+    if clause.startswith("运行时"):
+        return False
+    if clause.startswith("改动") and not any(term in clause for term in ("改成", "修改为", "改为")):
+        return False
+    if clause.startswith("把") and any(term in clause for term in ("改成", "改为", "拉起来", "跑起来", "打开", "看下")):
+        return True
     if not any(clause.startswith(prefix) for prefix in ACTION_PREFIXES):
         return False
     tokens = _pos_tokens(clause)
@@ -407,7 +528,19 @@ def _is_valid_clause(value: str) -> bool:
     if not HAS_TEXT_RE.search(value):
         return False
     compact = "".join(value.split())
-    return 2 <= len(compact) <= 40
+    return 2 <= len(compact) <= 80
+
+
+def _is_feedback_only(value: str) -> bool:
+    normalized = value.lower()
+    if re.match(r"^(?:感觉)?(?:还是|还|依旧|仍然|方向|\d+好一点|不好|看不懂)", normalized):
+        return not any(
+            marker in normalized
+            for marker in ("先", "要用", "需要", "告诉我", "总结", "重新设计", "能不能", "分开区域讲")
+        )
+    if normalized.startswith("看到") and "好处" in normalized:
+        return True
+    return False
 
 
 def _tokens_for_label(label: str) -> tuple[str, ...]:

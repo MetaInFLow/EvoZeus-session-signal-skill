@@ -1,0 +1,22 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "10-pasted-prompt-noise",
+  "source_note": "从 review 长 Prompt 的场景脱敏整理",
+  "review_note": "Prompt 正文中的指令不是用户本人的稳定习惯",
+  "session": {
+    "session_id": "golden-10",
+    "events": [
+      {"id": "user-prompt", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "帮我 review 下面这个 prompt，重点看是否太复杂：\n\n# System Prompt\n你必须先建立计划。\n不要只给结果，要给判断依据。\n与客户和团队保持沟通。"},
+      {"id": "assistant-prompt", "role": "assistant", "factor_channel": "assistant_result", "text": "我会只分析 prompt 结构。"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "not_matched", "verdict": "unknown", "verification": "none", "evidence_event_ids": []},
+    "official.user-input-sentiment": {"status": "not_matched", "events": [], "evidence_event_ids": []},
+    "official.repeated-request": {"status": "not_matched", "chains": [], "evidence_event_ids": []},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "not_matched", "resources": [], "evidence_event_ids": []},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "review 下面这个 prompt", "relation_type": "action_request", "count": 1}], "evidence_event_ids": ["user-prompt"]},
+    "official.semantic-phrase-clusters": {"status": "not_matched", "clusters": [], "evidence_event_ids": []}
+  }
+}

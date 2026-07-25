@@ -1,0 +1,24 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "07-resource-usage",
+  "source_note": "从明确使用 Skill 和 MCP 的场景脱敏整理",
+  "review_note": "只统计明确使用的资源，文本中的环境变量和模板名不算",
+  "session": {
+    "session_id": "golden-07",
+    "events": [
+      {"id": "user-resource", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "请使用 systematic-debugging 排查，并调用 node_repl MCP"},
+      {"id": "assistant-resource", "role": "assistant", "factor_channel": "assistant_result", "skill_name": "systematic-debugging", "text": "我会使用 $systematic-debugging 和 mcp__node_repl__js 排查。环境变量是 $HOME，模板名是 $SkillName。"},
+      {"id": "mcp-call", "role": "tool", "factor_channel": "tool_usage", "tool_name": "mcp__node_repl__js", "codex_event_type": "function_call", "tool_result": {"name": "mcp__node_repl__js", "call_id": "mcp-1"}, "text": "{}"},
+      {"id": "mcp-output", "role": "tool", "factor_channel": "tool_result", "tool_name": "function_call_output", "codex_event_type": "function_call_output", "tool_result": {"call_id": "mcp-1", "status": "success"}, "text": "ok"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "not_matched", "verdict": "unknown", "verification": "none", "evidence_event_ids": []},
+    "official.user-input-sentiment": {"status": "not_matched", "events": [], "evidence_event_ids": []},
+    "official.repeated-request": {"status": "not_matched", "chains": [], "evidence_event_ids": []},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "matched", "resources": [{"resource_type": "mcp", "resource_name": "node_repl", "count": 1}, {"resource_type": "skill", "resource_name": "systematic-debugging", "count": 1}, {"resource_type": "tool", "resource_name": "mcp__node_repl__js", "count": 1}], "evidence_event_ids": ["assistant-resource", "mcp-call"]},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "使用 systematic-debugging 排查", "relation_type": "action_request", "count": 1}, {"label": "调用 node_repl MCP", "relation_type": "action_request", "count": 1}], "evidence_event_ids": ["user-resource"]},
+    "official.semantic-phrase-clusters": {"status": "not_matched", "clusters": [], "evidence_event_ids": []}
+  }
+}

@@ -1,0 +1,1624 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="assets/evozeus-gold-512.png">
+  <title>AI 使用画像与 Session 价值报告 · zeusAorN</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #fbfaf6;
+      --paper-2: #f4f0e8;
+      --surface: #ffffff;
+      --surface-soft: #f8f6f0;
+      --ink: #101a2d;
+      --ink-2: #25324a;
+      --muted: #667085;
+      --line: #ded7c9;
+      --line-strong: #cdbf9f;
+      --gold: #a66a16;
+      --gold-soft: #efe3c7;
+      --blue: #183a63;
+      --blue-soft: #e8edf4;
+      --green: #176b5b;
+      --red: #9b3d25;
+      --radius: 8px;
+      --shadow: 0 18px 48px rgba(29, 36, 54, .08);
+      --sidebar: 184px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background:
+        linear-gradient(90deg, rgba(166, 106, 22, .06) 0 1px, transparent 1px 100%) 0 0 / 46px 46px,
+        linear-gradient(180deg, var(--paper), #f6f2e9);
+      color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      font-variant-numeric: tabular-nums;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 {
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 62px;
+      line-height: .95;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+    h2 {
+      color: var(--ink);
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      font-weight: 780;
+    }
+    h3 {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.25;
+      letter-spacing: 0;
+      font-weight: 760;
+    }
+    h4 {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.25;
+      letter-spacing: 0;
+      font-weight: 760;
+    }
+    p { color: var(--muted); }
+    code {
+      color: var(--blue);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100dvh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      padding: 22px 18px;
+      border-right: 1px solid var(--line);
+      background: rgba(251, 250, 246, .86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 26px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 14px;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .zeus-mark {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      flex: 0 0 auto;
+      filter: drop-shadow(0 7px 12px rgba(166, 106, 22, .18));
+    }
+
+    .brand-name {
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .brand-sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 4px;
+      margin-top: 18px;
+    }
+
+    .nav-list a {
+      display: block;
+      padding: 9px 10px;
+      border-radius: 8px;
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    .nav-list a:hover,
+    .nav-list a:focus-visible {
+      outline: none;
+      background: var(--surface-soft);
+      color: var(--gold);
+    }
+
+    .report-scope {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .62);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .report-scope strong { color: var(--ink); }
+
+    .main {
+      min-width: 0;
+      padding: 30px 34px 46px;
+    }
+
+    .report {
+      width: min(100%, 1340px);
+      margin: 0 auto;
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid rgba(222, 215, 201, .8);
+      box-shadow: var(--shadow);
+    }
+
+    .report-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 28px;
+      padding: 34px 34px 24px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .88), rgba(248, 246, 240, .66)),
+        var(--surface);
+    }
+
+    .document-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 28px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .title-block {
+      display: grid;
+      gap: 14px;
+      max-width: 760px;
+    }
+
+    .report-label {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .report-label::before {
+      content: "";
+      width: 3px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .title-copy {
+      color: var(--ink-2);
+      max-width: 58ch;
+      font-size: 15px;
+    }
+
+    .seal {
+      align-self: start;
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(251, 250, 246, .72);
+    }
+
+    .seal img {
+      width: 74px;
+      height: 74px;
+      object-fit: contain;
+    }
+
+    .seal strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .seal span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section {
+      padding: 24px 34px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child { border-bottom: 0; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .section-head p {
+      max-width: 52ch;
+      font-size: 13px;
+    }
+
+    .verdict-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .98fr) minmax(360px, 1.02fr);
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    .verdict-card {
+      display: grid;
+      gap: 18px;
+      padding: 26px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(239, 227, 199, .62), rgba(255, 255, 255, .82)),
+        var(--surface);
+    }
+
+    .verdict-kicker {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 780;
+    }
+
+    .verdict-main {
+      display: grid;
+      gap: 8px;
+    }
+
+    .verdict-main strong {
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 76px;
+      line-height: .9;
+      font-weight: 700;
+    }
+
+    .verdict-main span {
+      color: var(--gold);
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 780;
+    }
+
+    .verdict-summary {
+      color: var(--ink-2);
+      max-width: 56ch;
+      font-size: 15px;
+    }
+
+    .summary-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 116px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .74);
+    }
+
+    .metric b {
+      display: block;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 9px;
+      color: var(--ink-2);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .dimension-panel {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 20px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .radar-wrap {
+      display: grid;
+      place-items: center;
+      min-height: 260px;
+      border-right: 1px solid var(--line);
+      padding-right: 18px;
+    }
+
+    #habitRadar {
+      width: 230px;
+      aspect-ratio: 1;
+    }
+
+    .dimension-list {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+    }
+
+    .dimension-row {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) 54px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .dimension-code {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .dimension-name {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .meter {
+      height: 8px;
+      border-radius: 999px;
+      background: #e4e0d8;
+      overflow: hidden;
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--gold));
+    }
+
+    .dimension-score {
+      color: var(--ink);
+      text-align: right;
+      font-weight: 760;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .score-card {
+      min-height: 128px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .score-card strong {
+      display: block;
+      color: var(--gold);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      line-height: 1;
+      margin: 8px 0;
+    }
+
+    .score-card p {
+      font-size: 12px;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+      gap: 22px;
+    }
+
+    .phrase-list,
+    .key-list,
+    .recommendation-list,
+    .evidence-table,
+    .source-list {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .phrase-item,
+    .key-item,
+    .recommendation-item,
+    .source-item {
+      display: grid;
+      gap: 4px;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .phrase-item:last-child,
+    .key-item:last-child,
+    .recommendation-item:last-child,
+    .source-item:last-child { border-bottom: 0; }
+
+    .phrase-item {
+      grid-template-columns: 34px minmax(0, 1fr) 72px;
+      align-items: center;
+    }
+
+    .rank {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: var(--gold-soft);
+      color: var(--gold);
+      font-weight: 780;
+      font-size: 12px;
+    }
+
+    .item-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .count {
+      color: var(--blue);
+      text-align: right;
+      font-weight: 780;
+    }
+
+    .key-item {
+      grid-template-columns: 96px minmax(0, 1fr) 58px;
+      align-items: center;
+    }
+
+    .signal-layout {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .signal-card {
+      min-height: 150px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .signal-card h3 { margin-bottom: 10px; }
+
+    .signal-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid #eee9df;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .signal-row:last-child { border-bottom: 0; }
+    .signal-row b { color: var(--ink); }
+
+    .session-review-shell {
+      display: grid;
+      gap: 16px;
+    }
+
+    .review-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .review-stat {
+      min-height: 98px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .review-stat strong {
+      display: block;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .review-stat span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .review-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .review-filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .filter-button {
+      min-height: 34px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink-2);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .filter-button.is-active {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .review-search {
+      min-height: 36px;
+      width: min(100%, 320px);
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .review-search:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(24, 58, 99, .12);
+    }
+
+    .session-review-layout {
+      display: grid;
+      grid-template-columns: minmax(330px, .88fr) minmax(0, 1.12fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .session-list {
+      max-height: 760px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .session-card {
+      width: 100%;
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .session-card:last-child { border-bottom: 0; }
+
+    .session-card:hover,
+    .session-card.is-active {
+      background: var(--surface-soft);
+    }
+
+    .session-card.is-active {
+      box-shadow: inset 3px 0 0 var(--blue);
+    }
+
+    .session-card-top,
+    .session-card-meta,
+    .detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .session-card h3 {
+      max-width: 36ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .session-card p {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 12px;
+    }
+
+    .session-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .68);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 720;
+    }
+
+    .session-pill.high {
+      border-color: rgba(23, 107, 91, .3);
+      background: rgba(23, 107, 91, .08);
+      color: var(--green);
+    }
+
+    .session-pill.low {
+      border-color: rgba(155, 61, 37, .26);
+      background: rgba(155, 61, 37, .08);
+      color: var(--red);
+    }
+
+    .score-track {
+      height: 7px;
+      border-radius: 999px;
+      background: #e4e0d8;
+      overflow: hidden;
+    }
+
+    .score-track span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--gold));
+    }
+
+    .session-detail {
+      min-height: 560px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .session-detail h3 {
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+
+    .detail-id {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .detail-opening {
+      margin: 16px 0;
+      padding: 14px;
+      border-left: 3px solid var(--blue);
+      background: var(--surface-soft);
+      color: var(--ink-2);
+    }
+
+    .signal-reason-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .signal-reason {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(251, 250, 246, .72);
+    }
+
+    .signal-reason strong {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .signal-reason p {
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    .factor-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .factor-chip {
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+      background: rgba(255, 255, 255, .72);
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 22px;
+    }
+
+    .trait-panel {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .trait-panel.good { border-top: 4px solid var(--green); }
+    .trait-panel.watch { border-top: 4px solid var(--red); }
+
+    .trait-list {
+      display: grid;
+      gap: 11px;
+    }
+
+    .trait-item {
+      padding-top: 11px;
+      border-top: 1px solid var(--line);
+    }
+
+    .trait-item:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .recommendation-item {
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .recommendation-item .rank {
+      background: var(--blue);
+      color: white;
+    }
+
+    .recommendation-item p {
+      margin-top: 5px;
+      max-width: 74ch;
+    }
+
+    .evidence-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 920px;
+    }
+
+    .evidence-table th,
+    .evidence-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .evidence-table th {
+      color: var(--ink-2);
+      background: var(--surface-soft);
+      font-weight: 760;
+    }
+
+    .evidence-table tr:last-child td { border-bottom: 0; }
+    .evidence-table td:last-child { color: var(--blue); font-weight: 760; }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr);
+      gap: 22px;
+    }
+
+    .source-item {
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .note {
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1120px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .nav-list {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .report-scope { display: none; }
+      .report-top,
+      .verdict-grid,
+      .dimension-panel,
+      .insight-grid,
+      .source-grid { grid-template-columns: 1fr; }
+      .radar-wrap {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 0 0 18px;
+      }
+      .summary-metrics,
+      .score-grid,
+      .review-stat-grid,
+      .signal-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .session-review-layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .main { padding: 16px; }
+      .report-top,
+      .section { padding: 22px 18px; }
+      h1 { font-size: 42px; }
+      h2 { font-size: 19px; }
+      .document-meta { gap: 8px 12px; margin-bottom: 20px; }
+      .seal { grid-template-columns: 62px minmax(0, 1fr); }
+      .seal img { width: 58px; height: 58px; }
+      .verdict-main strong { font-size: 56px; }
+      .verdict-main span { font-size: 22px; }
+      .summary-metrics,
+      .score-grid,
+      .review-stat-grid,
+      .signal-layout,
+      .session-review-layout,
+      .two-column { grid-template-columns: 1fr; }
+      .dimension-row { grid-template-columns: 32px minmax(0, 1fr); }
+      .dimension-score { grid-column: 2; text-align: left; }
+      .phrase-item,
+      .key-item,
+      .recommendation-item,
+      .source-item { grid-template-columns: 1fr; }
+      .count { text-align: left; }
+      .evidence-table { overflow-x: auto; }
+      .evidence-table table { min-width: 920px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="报告目录">
+      <div class="brand">
+        <div class="brand-lockup">
+          <img class="zeus-mark" src="assets/evozeus-gold-512.png" alt="EvoZeus Zeus">
+          <div>
+            <div class="brand-name">EvoZeus</div>
+            <div class="brand-sub">zeusAorN 评测系统</div>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <a href="#verdict">总评结论</a>
+          <a href="#session-review">Session 复核</a>
+          <a href="#dimensions">维度结果</a>
+          <a href="#signals">行为信号</a>
+          <a href="#traits">优势与风险</a>
+          <a href="#actions">优化建议</a>
+          <a href="#evidence">证据明细</a>
+        </nav>
+      </div>
+      <div class="report-scope">
+        <strong>评测范围</strong>
+        <span>2026-07-07 扫描结果预览</span>
+        <span>本地 factor 结果预览</span>
+        <span>不是正式心理测评</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <article class="report">
+        <header class="report-top">
+          <div>
+            <div class="document-meta">
+              <span>报告生成时间 2026-07-08</span>
+              <span>Session ID official-factor-sample-set</span>
+              <span>评测版本 v0.1</span>
+            </div>
+            <div class="title-block">
+              <div class="report-label">AI 使用画像与 Session 价值报告</div>
+              <h1>AI 使用画像与 Session 价值报告</h1>
+              <p class="title-copy">基于 session 行为数据生成的综合评估，帮助用户看清自己的 AI 协作习惯、哪些记录值得沉淀、优势、摩擦点和下一步优化方向。</p>
+            </div>
+          </div>
+          <aside class="seal" aria-label="zeusAorN 评测系统">
+            <img src="assets/evozeus-gold-512.png" alt="Zeus 小人">
+            <div>
+              <strong>zeusAorN 评测系统</strong>
+              <span>本报告由 AI 行为扫描分析生成。仅做参考，不构成任何专业测评结论。</span>
+            </div>
+          </aside>
+        </header>
+
+        <section class="section" id="verdict">
+          <div class="verdict-grid">
+            <div class="verdict-card">
+              <div class="verdict-kicker">zeusAorN 评测结果</div>
+              <div class="verdict-main">
+                <strong>INTJ 倾向</strong>
+                <span>战略型拆解者</span>
+              </div>
+              <p class="verdict-summary">画像结论更接近 INTJ；在旧扫描结果中，14 条 session 被标为高质量候选，19 条需要复核或被判为低价值。报告重点不是贴标签，而是解释哪些使用习惯和历史记录值得沉淀。</p>
+            </div>
+            <div class="summary-metrics" id="metricGrid"></div>
+          </div>
+        </section>
+
+        <section class="section" id="session-review">
+          <div class="section-head">
+            <div>
+              <h2>Session 价值复核</h2>
+              <p>整合旧版高质量 session 复核页：看哪些记录值得沉淀，哪些只是普通完成或需要人工复核。</p>
+            </div>
+            <p>这部分来自真实 Codex scanner 与 official factor runner，不是 mock 数据。</p>
+          </div>
+          <div class="session-review-shell">
+            <div class="review-stat-grid" id="reviewStats"></div>
+            <div class="review-controls">
+              <div class="review-filter-group" id="reviewFilters"></div>
+              <input class="review-search" id="sessionSearch" type="search" placeholder="搜索标题、项目、用户开头">
+            </div>
+            <div class="session-review-layout">
+              <div class="session-list" id="sessionList"></div>
+              <div class="session-detail" id="sessionDetail"></div>
+            </div>
+            <div class="factor-chip-list" id="officialFactorList"></div>
+          </div>
+        </section>
+
+        <section class="section" id="dimensions">
+          <div class="section-head">
+            <div>
+              <h2>维度结果</h2>
+              <p>四个维度描述的是当前 session 中表现出来的协作偏好。</p>
+            </div>
+            <p>INTJ 表示更偏向内省沉淀、本质全局、判断标准和结构闭环。</p>
+          </div>
+          <div class="dimension-panel">
+            <div class="radar-wrap">
+              <canvas id="habitRadar" width="520" height="520" aria-label="INTJ 四维雷达图"></canvas>
+            </div>
+            <div class="dimension-list" id="dimensionList"></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>评测因子总览</h2>
+              <p>先看整体扫描结果，再决定哪些证据值得展开。</p>
+            </div>
+          </div>
+          <div class="score-grid" id="factorSummary"></div>
+        </section>
+
+        <section class="section" id="signals">
+          <div class="section-head">
+            <div>
+              <h2>行为信号</h2>
+              <p>高频句和关键句用于解释画像，不单独决定最终结论。</p>
+            </div>
+          </div>
+          <div class="insight-grid">
+            <div>
+              <h3>高频使用句</h3>
+              <div class="phrase-list" id="phraseList" style="margin-top: 12px;"></div>
+            </div>
+            <div>
+              <h3>关键句趋势</h3>
+              <div class="key-list" id="keyList" style="margin-top: 12px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>其他扫描信号</h2>
+              <p>情绪、重复请求、完成情况、工具失败和资源使用一起看，避免误读单一指标。</p>
+            </div>
+          </div>
+          <div class="signal-layout" id="signalBoard"></div>
+        </section>
+
+        <section class="section" id="traits">
+          <div class="section-head">
+            <div>
+              <h2>优势与风险</h2>
+              <p>保留高质量习惯，同时处理最可能拖慢协作效率的地方。</p>
+            </div>
+          </div>
+          <div class="two-column">
+            <div class="trait-panel good">
+              <h3>优势 Strengths</h3>
+              <div class="trait-list" id="strengthList"></div>
+            </div>
+            <div class="trait-panel watch">
+              <h3>风险 Watchouts</h3>
+              <div class="trait-list" id="watchoutList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="actions">
+          <div class="section-head">
+            <div>
+              <h2>优化建议</h2>
+              <p>建议必须能直接用于下一次对话，而不是抽象评价。</p>
+            </div>
+          </div>
+          <div class="recommendation-list" id="recommendationList"></div>
+        </section>
+
+        <section class="section" id="evidence">
+          <div class="section-head">
+            <div>
+              <h2>zeusAorN Evidence Notes</h2>
+              <p>完整保留 MBTI factor 的 23 条 marker 证据，只展示短句 preview，不展示完整聊天原文。</p>
+            </div>
+          </div>
+          <div class="evidence-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>证据位置</th>
+                  <th>轴线</th>
+                  <th>倾向</th>
+                  <th>命中词</th>
+                  <th>证据短句</th>
+                  <th>权重</th>
+                </tr>
+              </thead>
+              <tbody id="evidenceRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>以后如何稳定生成</h2>
+              <p>报告只消费固定 JSON，不直接读取 raw session。</p>
+            </div>
+          </div>
+          <div class="source-grid">
+            <div>
+              <h3>数据契约</h3>
+              <p style="margin-top: 8px;">模板需要的内容分成固定字段，每类字段都有稳定来源和兜底规则。</p>
+            </div>
+            <div class="source-list" id="sourceList"></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <p class="note">注：本报告基于 session 行为数据生成，结果受样本和上下文影响，仅供参考，不构成任何专业测评结论。</p>
+        </section>
+      </article>
+    </main>
+  </div>
+
+  <script>
+    const reportData = {
+      meta: {
+        subject: "示例用户",
+        scanLabel: "脱敏示例",
+        sessionId: "sample-session",
+        scanScope: "公开模板数据",
+        generatedAt: "2026-07-25"
+      },
+      profile: {
+        displayName: "证据不足",
+        archetype: "待观察使用画像",
+        code: "UNKNOWN",
+        confidence: 0,
+        oneSentence: "该页面只包含公开模板数据；真实分析结果由本地运行时注入。",
+        evidenceCount: 0,
+        knownDimensions: "0/4"
+      },
+      metrics: [
+        { label: "已扫描 Session", value: "0", note: "等待本地数据" },
+        { label: "高质量候选", value: "0", note: "等待 factor 分析" },
+        { label: "Factor 结果", value: "0", note: "公开模板不携带真实记录" }
+      ],
+      factorSummary: [
+        { title: "任务闭环", value: "待分析", body: "运行 Factor 后展示证据支持的结论。" },
+        { title: "用户反馈", value: "待分析", body: "真实会话数据仅在授权环境处理。" }
+      ],
+      frequencyPhrases: [],
+      keySentences: [],
+      dimensions: [
+        { axis: "E-I", label: "外向 / 内向", left: "E", right: "I", leftScore: 0, rightScore: 0, score: 0.5 },
+        { axis: "S-N", label: "实感 / 直觉", left: "S", right: "N", leftScore: 0, rightScore: 0, score: 0.5 },
+        { axis: "T-F", label: "思考 / 情感", left: "T", right: "F", leftScore: 0, rightScore: 0, score: 0.5 },
+        { axis: "J-P", label: "判断 / 感知", left: "J", right: "P", leftScore: 0, rightScore: 0, score: 0.5 }
+      ],
+      signalGroups: [
+        { title: "数据状态", rows: [["真实数据", "未注入"], ["公开模板", "已脱敏"]] }
+      ],
+      sessionReview: {
+        stats: {
+          scanned_sessions_total: 0,
+          workspace_sessions_analyzed: 0,
+          high_quality_sessions: 0,
+          low_quality_sessions: 0,
+          factor_results: 0
+        },
+        officialFactorIds: [],
+        sessions: []
+      },
+      traits: [
+        { kind: "观察", title: "等待数据", body: "完成本地分析后生成证据支持的画像。" }
+      ],
+      recommendations: [
+        { title: "运行本地分析", trigger: "需要真实报告时", action: "在授权环境运行 scanner 和 Factor。", example: "生成脱敏后的结构化报告。" }
+      ],
+      sourcePlan: [
+        { title: "数据来源", method: "本地授权 session；公开模板不包含真实会话。" }
+      ],
+      evidence: []
+    };
+
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function renderMetrics() {
+      document.getElementById("metricGrid").innerHTML = reportData.metrics.map((item) => `
+        <div class="metric">
+          <b>${esc(item.value)}</b>
+          <span>${esc(item.label)}</span>
+          <small>${esc(item.note)}</small>
+        </div>
+      `).join("");
+    }
+
+    function renderDimensions() {
+      document.getElementById("dimensionList").innerHTML = reportData.dimensions.map((item) => `
+        <div class="dimension-row">
+          <div class="dimension-code">${esc(item.selected)}</div>
+          <div>
+            <div class="dimension-name">
+              <span>${esc(item.short)}</span>
+              <span>${esc(item.left)} / ${esc(item.right)} · ${esc(item.evidence)} markers</span>
+            </div>
+            <div class="meter"><span style="width:${Math.round(item.score * 100)}%"></span></div>
+          </div>
+          <div class="dimension-score">${Math.round(item.score * 100)}%</div>
+        </div>
+      `).join("");
+    }
+
+    function renderFactorSummary() {
+      document.getElementById("factorSummary").innerHTML = reportData.factorSummary.map((item) => `
+        <div class="score-card">
+          <h3>${esc(item.title)}</h3>
+          <strong>${esc(item.value)}</strong>
+          <p>${esc(item.body)}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderSignals() {
+      document.getElementById("phraseList").innerHTML = reportData.frequencyPhrases.map((item, index) => `
+        <div class="phrase-item">
+          <span class="rank">${index + 1}</span>
+          <div>
+            <h3>${esc(item.text)}</h3>
+            <span class="item-meta">${esc(item.category)}，权重 ${esc(item.weight)}</span>
+          </div>
+          <span class="count">${esc(item.count)} 次</span>
+        </div>
+      `).join("");
+      document.getElementById("keyList").innerHTML = reportData.keySentences.map((item) => `
+        <div class="key-item">
+          <code>${esc(item.date)}</code>
+          <div>
+            <h3>${esc(item.text)}</h3>
+            <span class="item-meta">${esc(item.role)}，${esc(item.relation)}</span>
+          </div>
+          <span class="count">${esc(item.count)} 次</span>
+        </div>
+      `).join("");
+      document.getElementById("signalBoard").innerHTML = reportData.signalGroups.map((group) => `
+        <div class="signal-card">
+          <h3>${esc(group.title)}</h3>
+          ${group.rows.map(([label, value]) => `
+            <div class="signal-row">
+              <span>${esc(label)}</span>
+              <b>${esc(value)}</b>
+            </div>
+          `).join("")}
+        </div>
+      `).join("");
+    }
+
+    const reviewState = {
+      filter: "all",
+      query: "",
+      selectedId: reportData.sessionReview.sessions[0]?.id || ""
+    };
+
+    const reviewFilters = [
+      ["all", "全部"],
+      ["high", "高质量"],
+      ["low", "待复核"],
+      ["repeat", "重复请求"],
+      ["problem", "问题/纠偏"],
+      ["failure", "失败排障"]
+    ];
+
+    function isHighQualitySession(item) {
+      return item.label.includes("高质量");
+    }
+
+    function sessionMatchesFilter(item) {
+      if (reviewState.filter === "high") return isHighQualitySession(item);
+      if (reviewState.filter === "low") return !isHighQualitySession(item);
+      if (reviewState.filter === "repeat") return item.candidate.includes("重复");
+      if (reviewState.filter === "problem") return item.candidate.includes("纠偏") || item.candidate.includes("问题");
+      if (reviewState.filter === "failure") return item.candidate.includes("失败");
+      return true;
+    }
+
+    function sessionMatchesQuery(item) {
+      const query = reviewState.query.trim().toLowerCase();
+      if (!query) return true;
+      return [item.title, item.project, item.label, item.candidate, item.opening, item.id]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    }
+
+    function filteredReviewSessions() {
+      return reportData.sessionReview.sessions.filter((item) => sessionMatchesFilter(item) && sessionMatchesQuery(item));
+    }
+
+    function renderReviewStats() {
+      const stats = reportData.sessionReview.stats;
+      const items = [
+        ["已扫描 Session", stats.scanned_sessions_total],
+        ["已跑 factor", stats.workspace_sessions_analyzed],
+        ["高质量候选", stats.high_quality_sessions],
+        ["待复核/低价值", stats.low_quality_sessions],
+        ["Factor 结果", stats.factor_results]
+      ];
+      document.getElementById("reviewStats").innerHTML = items.map(([label, value]) => `
+        <div class="review-stat">
+          <strong>${esc(value)}</strong>
+          <span>${esc(label)}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderReviewFilters() {
+      document.getElementById("reviewFilters").innerHTML = reviewFilters.map(([value, label]) => `
+        <button class="filter-button ${reviewState.filter === value ? "is-active" : ""}" type="button" data-filter="${esc(value)}">${esc(label)}</button>
+      `).join("");
+      document.querySelectorAll("[data-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          reviewState.filter = button.getAttribute("data-filter") || "all";
+          renderSessionReviewList();
+          renderReviewFilters();
+        });
+      });
+    }
+
+    function renderSessionReviewList() {
+      const sessions = filteredReviewSessions();
+      if (!sessions.some((item) => item.id === reviewState.selectedId)) {
+        reviewState.selectedId = sessions[0]?.id || "";
+      }
+      document.getElementById("sessionList").innerHTML = sessions.map((item) => {
+        const score = Math.round(Number(item.score || 0) * 100);
+        const tone = isHighQualitySession(item) ? "high" : "low";
+        return `
+          <button class="session-card ${item.id === reviewState.selectedId ? "is-active" : ""}" type="button" data-session-id="${esc(item.id)}">
+            <div class="session-card-top">
+              <h3>${esc(item.title)}</h3>
+              <span class="session-pill ${tone}">${esc(item.label)}</span>
+            </div>
+            <p>${esc(item.opening)}</p>
+            <div class="score-track"><span style="width:${score}%"></span></div>
+            <div class="session-card-meta">
+              <span class="item-meta">${esc(item.candidate)} · ${score}% · ${esc(item.project)}</span>
+              <span class="item-meta">${esc(item.events)} events</span>
+            </div>
+          </button>
+        `;
+      }).join("") || `<div class="session-card"><p>没有匹配的 session。</p></div>`;
+      document.querySelectorAll("[data-session-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          reviewState.selectedId = button.getAttribute("data-session-id") || "";
+          renderSessionReviewList();
+        });
+      });
+      renderSessionDetail();
+    }
+
+    function renderSessionDetail() {
+      const item = reportData.sessionReview.sessions.find((session) => session.id === reviewState.selectedId);
+      const target = document.getElementById("sessionDetail");
+      if (!item) {
+        target.innerHTML = "<p>请选择一条 session。</p>";
+        return;
+      }
+      const score = Math.round(Number(item.score || 0) * 100);
+      const tone = isHighQualitySession(item) ? "high" : "low";
+      target.innerHTML = `
+        <div class="detail-meta">
+          <span class="session-pill ${tone}">${esc(item.label)}</span>
+          <span class="session-pill">${esc(item.candidate)}</span>
+          <span class="session-pill">判断强度 ${score}%</span>
+        </div>
+        <h3>${esc(item.title)}</h3>
+        <div class="detail-id">${esc(item.id)}</div>
+        <div class="detail-opening">${esc(item.opening)}</div>
+        <div class="signal-row"><span>项目 / 路径</span><b>${esc(item.project)}</b></div>
+        <div class="signal-row"><span>事件数</span><b>${esc(item.events)}</b></div>
+        <div class="signal-row"><span>影响等级</span><b>${esc(item.impact)}</b></div>
+        <div class="signal-reason-list">
+          ${item.signals.map((signal) => `
+            <div class="signal-reason">
+              <strong><span>${esc(signal.label)}</span><span>权重 ${esc(signal.weight)}</span></strong>
+              <p>${esc(signal.reason)}</p>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderSessionReview() {
+      renderReviewStats();
+      renderReviewFilters();
+      document.getElementById("officialFactorList").innerHTML = reportData.sessionReview.officialFactorIds.map((factorId) => `
+        <span class="factor-chip">${esc(factorId)}</span>
+      `).join("");
+      const search = document.getElementById("sessionSearch");
+      search.addEventListener("input", () => {
+        reviewState.query = search.value;
+        renderSessionReviewList();
+      });
+      renderSessionReviewList();
+    }
+
+    function renderTraitsAndActions() {
+      const strengths = reportData.traits.filter((item) => item.kind === "优势");
+      const watchouts = reportData.traits.filter((item) => item.kind !== "优势");
+      document.getElementById("strengthList").innerHTML = strengths.map((item) => `
+        <div class="trait-item">
+          <h4>${esc(item.title)}</h4>
+          <p>${esc(item.body)}</p>
+        </div>
+      `).join("");
+      document.getElementById("watchoutList").innerHTML = watchouts.map((item) => `
+        <div class="trait-item">
+          <h4>${esc(item.title)}</h4>
+          <p>${esc(item.body)}</p>
+        </div>
+      `).join("");
+      document.getElementById("recommendationList").innerHTML = reportData.recommendations.map((item, index) => `
+        <div class="recommendation-item">
+          <span class="rank">${index + 1}</span>
+          <div>
+            <h3>${esc(item.title)} <span class="item-meta"> · ${esc(item.trigger)}</span></h3>
+            <p>${esc(item.action)}</p>
+            <p><strong>示例：</strong>${esc(item.example)}</p>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderEvidenceAndSources() {
+      document.getElementById("evidenceRows").innerHTML = reportData.evidence.map((item) => `
+        <tr>
+          <td><code>${esc(item.eventId)}</code></td>
+          <td>${esc(item.axis)}</td>
+          <td>${esc(item.pole)}</td>
+          <td>${esc(item.marker)}</td>
+          <td>${esc(item.excerpt)}</td>
+          <td>${esc(item.weight)}</td>
+        </tr>
+      `).join("");
+      document.getElementById("sourceList").innerHTML = reportData.sourcePlan.map((item) => `
+        <div class="source-item">
+          <h3>${esc(item.title)}</h3>
+          <p>${esc(item.method)}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderRadar() {
+      const canvas = document.getElementById("habitRadar");
+      const ctx = canvas.getContext("2d");
+      const size = canvas.width;
+      const cx = size / 2;
+      const cy = size / 2;
+      const maxR = size * .30;
+      const dims = reportData.dimensions;
+
+      ctx.clearRect(0, 0, size, size);
+      ctx.lineWidth = 2;
+
+      for (let ring = 1; ring <= 4; ring += 1) {
+        ctx.beginPath();
+        dims.forEach((_, i) => {
+          const angle = -Math.PI / 2 + i * Math.PI * 2 / dims.length;
+          const r = maxR * ring / 4;
+          const x = cx + Math.cos(angle) * r;
+          const y = cy + Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.strokeStyle = ring === 4 ? "#cdbf9f" : "#e5ded2";
+        ctx.stroke();
+      }
+
+      dims.forEach((dim, i) => {
+        const angle = -Math.PI / 2 + i * Math.PI * 2 / dims.length;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR);
+        ctx.strokeStyle = "#e5ded2";
+        ctx.stroke();
+
+        const labelX = cx + Math.cos(angle) * (maxR + 40);
+        const labelY = cy + Math.sin(angle) * (maxR + 40);
+        ctx.fillStyle = "#183a63";
+        ctx.font = "700 24px ui-sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(dim.selected, labelX, labelY - 10);
+        ctx.fillStyle = "#667085";
+        ctx.font = "500 13px ui-sans-serif";
+        ctx.fillText(dim.short, labelX, labelY + 14);
+      });
+
+      ctx.beginPath();
+      dims.forEach((dim, i) => {
+        const angle = -Math.PI / 2 + i * Math.PI * 2 / dims.length;
+        const r = maxR * dim.score;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = "rgba(24, 58, 99, .12)";
+      ctx.strokeStyle = "#183a63";
+      ctx.lineWidth = 3;
+      ctx.fill();
+      ctx.stroke();
+
+      dims.forEach((dim, i) => {
+        const angle = -Math.PI / 2 + i * Math.PI * 2 / dims.length;
+        const r = maxR * dim.score;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#a66a16";
+        ctx.fill();
+      });
+    }
+
+    renderMetrics();
+    renderSessionReview();
+    renderDimensions();
+    renderFactorSummary();
+    renderSignals();
+    renderTraitsAndActions();
+    renderEvidenceAndSources();
+    renderRadar();
+  </script>
+</body>
+</html>

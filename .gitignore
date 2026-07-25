@@ -3,3 +3,7 @@ __pycache__/
 .pytest_cache/
 artifacts/
 output/
+.superpowers/
+.DS_Store
+benchmarks/golden/real-session-reviews.json
+benchmarks/golden/real-sessions/

@@ -29,7 +29,7 @@ raw chat
 2. **不可校准**：不知道是哪类证据导致某条 session 被判高价值。
 3. **不可追溯**：用户看不到具体是哪几句话、哪个工具失败、哪次重复请求支撑结论。
 4. **隐私风险高**：容易把 raw chat 当成结果长期保存。
-5. **难以组合**：任务完成、用户纠偏、工具失败、资源使用、关键句密度是不同维度，不能揉成一个黑盒分数。
+5. **难以组合**：任务完成、用户纠偏、工具失败、资源使用、关键句和语义短句簇是不同维度，不能揉成一个黑盒分数。
 
 所以需要 `factor`：
 
@@ -71,7 +71,7 @@ C4Context
   Person(skillAuthor, "Skill Author", "把确认后的经验写成 SKILL / checklist / guardrail")
 
   System(scannerRuntime, "Scanner / Runtime", "扫描本地 Codex/agent session 并标准化事件")
-  System(officialFactors, "evozeus-session-signal-skill", "维护 official factor contract 和可运行 factor")
+  System(officialFactors, "EvoZeus-session-signal-skill", "维护 official factor contract 和可运行 factor")
   System(ledger, "Ledger", "保存 factor results、datasets、evidence refs")
   System(reviewPage, "High-Quality Session Review Page", "展示候选、理由和证据，支持人工复核")
   System(skillLibrary, "SKILL Library", "保存最终沉淀出的可复用指令")
@@ -119,13 +119,11 @@ flowchart TD
   D --> E1[task-completion]
   D --> E2[user-input-sentiment]
   D --> E3[repeated-request]
-  D --> E4[tool-failure / resource / key sentence diagnostics]
-  D --> E5[deprecated or experimental factors]
+  D --> E4[tool-failure / resource / key sentence / semantic phrase diagnostics]
   E1 --> F[OfficialFactorResult]
   E2 --> F
   E3 --> F
   E4 --> F
-  E5 --> F
   F --> G[Ledger read model]
   G --> H[Candidate synthesis]
   H --> I[High-Quality Session Review Page]
@@ -137,10 +135,10 @@ flowchart TD
 
 | 层 | 负责什么 | 不负责什么 |
 | --- | --- | --- |
-| Factor 层 | 抽取“这件事发生了吗”：完成、纠偏、重复、失败、资源、关键句。 | 不做最终高价值判断。 |
-| Synthesis 层 | 组合多个 factor，判断是否值得人工复核或沉淀。 | 不重新实现 factor 算法，不隐藏证据。 |
+| Factor 层 | 抽取“这件事发生了吗”：完成、纠偏、重复、失败、资源、关键句、语义短句簇。 | 不做最终高价值判断，不直接产出 MBTI。 |
+| Synthesis 层 | 组合多个 factor，判断是否值得人工复核或沉淀，并可生成 MBTI 综合画像。 | 不重新实现 factor 算法，不隐藏证据，不把综合画像伪装成 Factor。 |
 
-## 6. 当前 7 个 Factor 的角色
+## 6. 当前七个 Official Factor 的角色
 
 ### Active direct gates：可以直接影响候选结论
 
@@ -157,12 +155,11 @@ flowchart TD
 | `tool-failure-frequency` | 哪些工具失败了，是否影响任务？ | 只有和未完成、阻塞或可复用环境规则叠加时，才辅助 failure / troubleshooting。 | 把 wrapper success 当命令成功；把已恢复失败仍当最终失败。 |
 | `session-resource-usage` | 用了哪些 tool / skill / MCP / plugin / connector？ | 还原工作链路、依赖和资源是否真实使用。 | 因为工具多就判高价值。 |
 | `key-sentence-trends` | 用户/助手/工具里有哪些关键行动、对象、否定、输出句？ | 解释 session 在做什么，辅助写 SKILL 触发条件和步骤。 | 因为关键句多就判 workflow candidate。 |
+| `semantic-phrase-clusters` | 用户跨表达方式反复出现哪些稳定意图？ | 归并 direct-user 同义短句，辅助理解请求习惯和稳定意图。 | 把日志、代码、模板或粘贴文档当成用户习惯；因为某个簇频次高就判高价值。 |
 
-### Deprecated 候选：不应继续驱动判断
+### SKILL 综合画像：不属于 Official Factor
 
-| Factor | 问题 | 建议 |
-| --- | --- | --- |
-| `usage-sentence-cloud` | 高频词云更像展示和粗粒度探索，判断精度弱，容易制造伪洞察。 | 从 candidate synthesis 中排除；保留为 report visualization 或 NLP helper。 |
+MBTI 由 Session Signal SKILL 综合多个 official factor signals 生成，用于描述 session-derived 的沟通、判断和执行倾向。它不进入七个 Official Factor 清单，不产出 `OfficialFactorResult`，也不能被表述为正式测评或稳定身份标签。
 
 ## 7. Candidate Label、Page Label、Human Review 的区别
 
@@ -179,7 +176,7 @@ flowchart TD
 
 ## 8. 这个 Repo 的边界
 
-`evozeus-session-signal-skill` 应该只负责：
+`EvoZeus-session-signal-skill` 应该只负责：
 
 1. `OfficialFactor` Python contract。
 2. official factor spec schema。
@@ -197,7 +194,7 @@ flowchart TD
 - release manifest、checksum、SBOM、attestation。
 - 人工复核决策存储系统。
 
-这些职责应该在 `evozeus-infra` / runtime / UI host / SKILL library 中解决。
+这些职责应该在 `EvoZeus-infra` / runtime / UI host / SKILL library 中解决。
 
 ## 9. 为什么现在会乱
 

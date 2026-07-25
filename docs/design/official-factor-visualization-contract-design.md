@@ -7,7 +7,7 @@
 
 ## 背景
 
-`evozeus-session-signal-skill` 当前只定义最小 Python `OfficialFactor` 抽象、official spec schema 和 official factors。随着 `evozeus-infra` 承接 scanner / runner / ledger / report，Factor 的输入和输出边界需要升级：
+`EvoZeus-session-signal-skill` 当前只定义最小 Python `OfficialFactor` 抽象、official spec schema 和 official factors。随着 `EvoZeus-infra` 承接 scanner / runner / ledger / report，Factor 的输入和输出边界需要升级：
 
 ```text
 Scanner / Ledger
@@ -54,7 +54,7 @@ usageSentenceCloud
 1. 本 repo 不实现 React / Vue / ECharts / Ant Design Charts 组件。
 2. 本 repo 不负责加载远程前端 bundle。
 3. 本 repo 不定义真实业务 Factor pack 的发布、安装、checksum、SBOM 或 attestation。
-4. 本 repo 不替代 `evozeus-infra` 的 ledger schema、route registry 或 permission gate。
+4. 本 repo 不替代 `EvoZeus-infra` 的 ledger schema、route registry 或 permission gate。
 
 ## 核心抽象
 
@@ -306,7 +306,7 @@ ResultPresentation
 
 ## Ledger 映射
 
-`evozeus-infra` 可以把 result 拆成这些层：
+`EvoZeus-infra` 可以把 result 拆成这些层：
 
 ```text
 factor_results

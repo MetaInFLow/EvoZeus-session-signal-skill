@@ -85,12 +85,12 @@
 - Modify: `SKILL.md`
 - Modify: `README.md`
 - Modify: `docs/architecture/factor-system-concepts.md`
-- Modify: `../evozeus-infra/src/evozeus_runtime/reports/ledger_browser.py`
-- Modify: `../evozeus-infra/src/evozeus_runtime/reports/ai_usage_profile.py`
-- Modify: `../evozeus-infra/src/evozeus_runtime/use_cases/generate_ai_usage_profile_report.py`
-- Modify: `../evozeus-infra/tests/unit/test_official_factor_bridge.py`
-- Modify: `../evozeus-infra/tests/integration/test_ai_usage_profile_report.py`
-- Modify: `../evozeus-infra/tests/unit/test_ai_usage_profile_renderer.py`
+- Modify: `../EvoZeus-infra/src/evozeus_runtime/reports/ledger_browser.py`
+- Modify: `../EvoZeus-infra/src/evozeus_runtime/reports/ai_usage_profile.py`
+- Modify: `../EvoZeus-infra/src/evozeus_runtime/use_cases/generate_ai_usage_profile_report.py`
+- Modify: `../EvoZeus-infra/tests/unit/test_official_factor_bridge.py`
+- Modify: `../EvoZeus-infra/tests/integration/test_ai_usage_profile_report.py`
+- Modify: `../EvoZeus-infra/tests/unit/test_ai_usage_profile_renderer.py`
 
 - [ ] 删除 official MBTI/usage cloud 枚举和说明；说明 MBTI 由 Skill synthesis 负责。
 - [ ] 报告改为消费 `semantic_phrase_cluster_set`，不再读取 `high_frequency_phrase_set`。

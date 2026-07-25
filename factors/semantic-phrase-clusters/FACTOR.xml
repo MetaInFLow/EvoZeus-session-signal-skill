@@ -1,0 +1,59 @@
+<factor id="official.semantic-phrase-clusters" version="v0.1.0">
+  <name>
+    <zh>语义短句聚类</zh>
+    <en>Semantic phrase clusters</en>
+  </name>
+  <summary>
+    <zh>把用户本人表达的同义短句归并为稳定意图簇，并保留变体、计数和事件证据。</zh>
+    <en>Groups semantically equivalent direct-user phrases into stable intent clusters with variants, counts, and evidence.</en>
+  </summary>
+  <owner>evozeus-factor-maintainers</owner>
+  <category>official</category>
+  <stage>signal_extraction</stage>
+  <runtime>in_process</runtime>
+  <inputs>
+    <input>SessionEnvelope</input>
+  </inputs>
+  <input_channels>
+    <channel>user_input</channel>
+  </input_channels>
+  <outputs>
+    <output>semantic_phrase_cluster_set</output>
+  </outputs>
+  <output_datasets>
+    <dataset id="semantic_phrase_clusters" semantic_type="semantic_phrase_cluster_set" primary_key="cluster_id" retention="replace_latest_top_n" />
+  </output_datasets>
+  <presentations>
+    <presentation id="semantic_phrase_cluster_table" component_ref="builtin.table.v1" route="dashboard" data_ref="semantic_phrase_clusters" priority="80" />
+    <presentation id="semantic_phrase_cluster_json" component_ref="builtin.json.v1" route="drawer" data_ref="semantic_phrase_clusters" priority="180" />
+  </presentations>
+  <dependencies>
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'EvoZeus-session-signal-skill[nlp]'" />
+  </dependencies>
+  <evidence_policy>
+    <raw_body_allowed>false</raw_body_allowed>
+    <preview_max_chars>120</preview_max_chars>
+    <top_evidence>cluster sample event refs only</top_evidence>
+  </evidence_policy>
+  <when_to_use>
+    <zh>需要分析用户跨表达方式的稳定请求习惯时使用。</zh>
+    <en>Use when analyzing stable request habits across different phrasings.</en>
+  </when_to_use>
+  <limitations>
+    <zh>只分析 direct-user 短句，不把日志、代码、模板或粘贴文档作为用户习惯。</zh>
+    <en>Analyzes direct-user phrases only and excludes logs, code, templates, and pasted documents.</en>
+  </limitations>
+  <privacy>
+    <zh>不保存完整原文，只保存代表短句、脱敏变体、计数和 event refs。</zh>
+    <en>Does not store full raw text; stores representative phrases, redacted variants, counts, and event refs.</en>
+  </privacy>
+  <quality_notes>
+    <note>cluster id 必须由规范化意图生成，不能由首条原句随机决定。</note>
+  </quality_notes>
+  <tag_labels>
+    <tag type="semantic_phrase" value="clustered">
+      <zh>语义短句已聚类</zh>
+      <en>Semantic phrases clustered</en>
+    </tag>
+  </tag_labels>
+</factor>

@@ -63,29 +63,41 @@ class ToolFailureFrequencyFactor(OfficialFactor):
 
     def evaluate(self, context: Mapping[str, Any]) -> OfficialFactorResult:
         session_id = str(context.get("session_id", ""))
-        counts: Counter[str] = Counter()
+        events = list(context.get("events", []))
+        call_name_by_id = _call_name_index(events)
+        failures: list[tuple[int, str, str]] = []
+        last_success_by_tool: dict[str, int] = {}
         evidence_by_tool: dict[str, list[str]] = defaultdict(list)
 
-        for event in context.get("events", []):
+        for index, event in enumerate(events):
             if event.get("role") != "tool":
                 continue
             if event_factor_channel(event) not in {"tool_result", "tool_usage"}:
                 continue
-            if not _is_failed_tool_event(event):
-                continue
-            tool_name = _real_tool_name(event)
+            tool_name = _real_tool_name(event, call_name_by_id)
             if not tool_name:
                 continue
-            counts[tool_name] += 1
-            evidence_by_tool[tool_name].append(str(event.get("id", "")))
+            if _is_failed_tool_event(event):
+                event_id = str(event.get("id", ""))
+                failures.append((index, tool_name, event_id))
+                evidence_by_tool[tool_name].append(event_id)
+            elif _is_successful_tool_event(event):
+                last_success_by_tool[tool_name] = index
 
-        if not counts:
+        if not failures:
             return self.build_result(status="not_matched", target_type="session", target_id=session_id)
 
+        counts: Counter[str] = Counter(tool_name for _, tool_name, _ in failures)
+        recovered_counts: Counter[str] = Counter(
+            tool_name for index, tool_name, _ in failures if last_success_by_tool.get(tool_name, -1) > index
+        )
         records = [
             {
                 "tool_name": tool_name,
                 "count": int(count),
+                "failure_count": int(count),
+                "recovered_count": int(recovered_counts.get(tool_name, 0)),
+                "unrecovered_count": int(count - recovered_counts.get(tool_name, 0)),
                 "evidence_count": int(count),
                 "sample_event_ids": [event_id for event_id in evidence_by_tool[tool_name] if event_id][:5],
             }
@@ -116,6 +128,9 @@ class ToolFailureFrequencyFactor(OfficialFactor):
                     "schema": {
                         "tool_name": "string",
                         "count": "number",
+                        "failure_count": "number",
+                        "recovered_count": "number",
+                        "unrecovered_count": "number",
                         "evidence_count": "number",
                     },
                 }
@@ -172,13 +187,16 @@ def _is_failed_tool_event(event: Mapping[str, Any]) -> bool:
     return False
 
 
-def _real_tool_name(event: Mapping[str, Any]) -> str:
+def _real_tool_name(event: Mapping[str, Any], call_name_by_id: Mapping[str, str] | None = None) -> str:
     tool_name = str(event.get("tool_name") or "")
     if _is_wrapper_output(event):
         tool_result = safe_json_mapping(event.get("tool_result"))
+        call_id = str(tool_result.get("call_id") or event.get("call_id") or "")
         return str(
             tool_result.get("name")
             or tool_result.get("tool_name")
+            or dict(call_name_by_id or {}).get(call_id)
+            or (tool_name if tool_name not in {"function_call_output", "custom_tool_call_output"} else "")
             or event.get("function_name")
             or event.get("call_name")
             or "unknown_tool"
@@ -193,3 +211,35 @@ def _is_wrapper_output(event: Mapping[str, Any]) -> bool:
         "function_call_output",
         "custom_tool_call_output",
     }
+
+
+def _call_name_index(events: list[Mapping[str, Any]]) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for event in events:
+        if event.get("role") != "tool" or event_factor_channel(event) != "tool_usage":
+            continue
+        tool_result = safe_json_mapping(event.get("tool_result"))
+        call_id = str(tool_result.get("call_id") or event.get("call_id") or "")
+        tool_name = str(tool_result.get("name") or event.get("tool_name") or "")
+        if call_id and tool_name and tool_name not in {"function_call", "custom_tool_call"}:
+            names[call_id] = tool_name
+    return names
+
+
+def _is_successful_tool_event(event: Mapping[str, Any]) -> bool:
+    tool_result = safe_json_mapping(event.get("tool_result"))
+    text_result = safe_json_mapping(event.get("text"))
+    if text_result:
+        tool_result = {**text_result, **dict(tool_result)}
+    status = str(tool_result.get("status") or tool_result.get("state") or "").lower()
+    if status in SUCCESS_STATUSES:
+        return True
+    for key in ("exit_code", "exitCode", "returncode", "code"):
+        if key not in tool_result:
+            continue
+        try:
+            return int(tool_result[key]) == 0
+        except (TypeError, ValueError):
+            continue
+    match = EXIT_CODE_RE.search(str(event.get("text") or ""))
+    return bool(match and int(match.group(1)) == 0)
