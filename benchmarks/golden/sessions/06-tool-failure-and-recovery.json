@@ -1,0 +1,27 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "06-tool-failure-and-recovery",
+  "source_note": "从测试先失败后修复成功的开发场景脱敏整理",
+  "review_note": "失败工具必须解析为 exec_command，并标记已恢复",
+  "session": {
+    "session_id": "golden-06",
+    "events": [
+      {"id": "user-tests", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "运行测试并修复失败"},
+      {"id": "tool-call-1", "role": "tool", "factor_channel": "tool_usage", "tool_name": "exec_command", "codex_event_type": "function_call", "tool_result": {"name": "exec_command", "call_id": "call-1"}, "text": "pytest -q"},
+      {"id": "tool-output-1", "role": "tool", "factor_channel": "tool_result", "tool_name": "function_call_output", "codex_event_type": "function_call_output", "tool_result": {"call_id": "call-1", "exit_code": 1}, "text": "1 failed\nProcess exited with code 1"},
+      {"id": "assistant-retry", "role": "assistant", "factor_channel": "assistant_result", "text": "测试失败，我继续修复。"},
+      {"id": "tool-call-2", "role": "tool", "factor_channel": "tool_usage", "tool_name": "exec_command", "codex_event_type": "function_call", "tool_result": {"name": "exec_command", "call_id": "call-2"}, "text": "pytest -q"},
+      {"id": "tool-output-2", "role": "tool", "factor_channel": "tool_result", "tool_name": "function_call_output", "codex_event_type": "function_call_output", "tool_result": {"call_id": "call-2", "status": "success", "exit_code": 0}, "text": "12 passed\nProcess exited with code 0"},
+      {"id": "assistant-success", "role": "assistant", "factor_channel": "assistant_result", "text": "修复完成，测试通过。"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "matched", "verdict": "completed", "verification": "verified", "evidence_event_ids": ["tool-output-2"]},
+    "official.user-input-sentiment": {"status": "matched", "events": [{"event_id": "user-tests", "kind": "problem_report"}], "evidence_event_ids": ["user-tests"]},
+    "official.repeated-request": {"status": "not_matched", "chains": [], "evidence_event_ids": []},
+    "official.tool-failure-frequency": {"status": "matched", "tools": [{"tool_name": "exec_command", "failure_count": 1, "recovered_count": 1, "unrecovered_count": 0}], "evidence_event_ids": ["tool-output-1"]},
+    "official.session-resource-usage": {"status": "matched", "resources": [{"resource_type": "tool", "resource_name": "exec_command", "count": 2}], "evidence_event_ids": ["tool-call-1", "tool-call-2"]},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "运行测试并修复失败", "relation_type": "action_request", "count": 1}], "evidence_event_ids": ["user-tests"]},
+    "official.semantic-phrase-clusters": {"status": "not_matched", "clusters": [], "evidence_event_ids": []}
+  }
+}

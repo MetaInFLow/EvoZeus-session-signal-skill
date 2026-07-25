@@ -7,7 +7,7 @@
 
 ## 实现范围
 
-本次实现把 `evozeus-session-signal-skill` 从“最小 session-only result contract”升级为“Session Signal SKILL repo”。它直接维护可运行的 official review factors，而不是维护独立演示目录。
+本次实现把 `EvoZeus-session-signal-skill` 从“最小 session-only result contract”升级为“Session Signal SKILL repo”。它直接维护可运行的 official review factors，而不是维护独立演示目录。
 
 当前 repo 范围：
 

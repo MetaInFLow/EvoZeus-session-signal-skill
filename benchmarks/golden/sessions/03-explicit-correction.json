@@ -1,0 +1,23 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "03-explicit-correction",
+  "source_note": "从用户否定已完成改动的场景脱敏整理",
+  "review_note": "用户最终明确拒绝结果，任务不能算完成",
+  "session": {
+    "session_id": "golden-03",
+    "events": [
+      {"id": "user-layout", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "把侧边栏改成卡片布局"},
+      {"id": "assistant-claimed", "role": "assistant", "factor_channel": "assistant_result", "text": "已经改好了。"},
+      {"id": "user-correction", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "不对，改动太大了，排版不要大变化"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "not_matched", "verdict": "not_completed", "verification": "user_rejected", "evidence_event_ids": ["user-correction"]},
+    "official.user-input-sentiment": {"status": "matched", "events": [{"event_id": "user-correction", "kind": "correction_request"}], "evidence_event_ids": ["user-correction"]},
+    "official.repeated-request": {"status": "not_matched", "chains": [], "evidence_event_ids": []},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "not_matched", "resources": [], "evidence_event_ids": []},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "把侧边栏改成卡片布局", "relation_type": "action_request", "count": 1}, {"label": "排版不要大变化", "relation_type": "negative_constraint", "count": 1}], "evidence_event_ids": ["user-layout", "user-correction"]},
+    "official.semantic-phrase-clusters": {"status": "not_matched", "clusters": [], "evidence_event_ids": []}
+  }
+}

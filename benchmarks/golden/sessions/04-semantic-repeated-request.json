@@ -1,0 +1,23 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "04-semantic-repeated-request",
+  "source_note": "从 Factor review 重复请求场景脱敏整理",
+  "review_note": "assistant 未解决问题，用户改写后再次提出相同意图",
+  "session": {
+    "session_id": "golden-04",
+    "events": [
+      {"id": "user-review-1", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "review一下这些 factor，看看算法有没有问题"},
+      {"id": "assistant-partial", "role": "assistant", "factor_channel": "assistant_result", "text": "我检查了代码，但还没有给出准确性结论。"},
+      {"id": "user-review-2", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "再检查一下这些 factor，算法感觉还是不对"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "not_matched", "verdict": "not_completed", "verification": "user_rejected", "evidence_event_ids": ["user-review-2"]},
+    "official.user-input-sentiment": {"status": "matched", "events": [{"event_id": "user-review-2", "kind": "correction_request"}], "evidence_event_ids": ["user-review-2"]},
+    "official.repeated-request": {"status": "matched", "chains": [{"first_event_id": "user-review-1", "repeat_event_id": "user-review-2"}], "evidence_event_ids": ["user-review-2"]},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "not_matched", "resources": [], "evidence_event_ids": []},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "review一下这些 factor", "relation_type": "action_request", "count": 1}, {"label": "再检查一下这些 factor", "relation_type": "sequence_step", "count": 1}, {"label": "看看算法有没有问题", "relation_type": "action_request", "count": 1}], "evidence_event_ids": ["user-review-1", "user-review-2"]},
+    "official.semantic-phrase-clusters": {"status": "matched", "clusters": [{"cluster_id": "intent.review_factors", "label": "检查/评审 Factor", "variants": ["review一下这些 factor", "再检查一下这些 factor"], "turn_count": 2}], "evidence_event_ids": ["user-review-1", "user-review-2"]}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "08-key-sentence-constraints",
+  "source_note": "从带顺序和禁止约束的工程请求脱敏整理",
+  "review_note": "需要完整保留用户本人表达的执行顺序和边界",
+  "session": {
+    "session_id": "golden-08",
+    "events": [
+      {"id": "user-constraints", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "先检查数据库迁移，不要删除数据库，最后输出回滚建议"},
+      {"id": "assistant-ack", "role": "assistant", "factor_channel": "assistant_result", "text": "收到，我先只读检查。"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "not_matched", "verdict": "unknown", "verification": "none", "evidence_event_ids": []},
+    "official.user-input-sentiment": {"status": "not_matched", "events": [], "evidence_event_ids": []},
+    "official.repeated-request": {"status": "not_matched", "chains": [], "evidence_event_ids": []},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "not_matched", "resources": [], "evidence_event_ids": []},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "不要删除数据库", "relation_type": "negative_constraint", "count": 1}, {"label": "先检查数据库迁移", "relation_type": "sequence_step", "count": 1}, {"label": "最后输出回滚建议", "relation_type": "sequence_step", "count": 1}], "evidence_event_ids": ["user-constraints"]},
+    "official.semantic-phrase-clusters": {"status": "not_matched", "clusters": [], "evidence_event_ids": []}
+  }
+}

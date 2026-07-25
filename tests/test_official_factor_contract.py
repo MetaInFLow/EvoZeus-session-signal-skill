@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import re
 import sys
 import xml.etree.ElementTree as ET
 import unittest
@@ -30,10 +31,10 @@ RepeatedRequestFactor = _repeated_request.RepeatedRequestFactor
 EXPECTED_OFFICIAL_FACTOR_SLUGS = {
     "key-sentence-trends",
     "repeated-request",
+    "semantic-phrase-clusters",
     "session-resource-usage",
     "task-completion",
     "tool-failure-frequency",
-    "usage-sentence-cloud",
     "user-input-sentiment",
 }
 
@@ -214,6 +215,55 @@ class OfficialFactorContractTest(unittest.TestCase):
         self.assertIn('what the user asked', skill_text)
         self.assertIn('what the assistant did', skill_text)
         self.assertIn('which tools/resources were used', skill_text)
+
+    def test_top_level_skill_defines_mbti_as_skill_composite_profile(self) -> None:
+        skill_text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("MBTI/personality profile is a Skill-level composite profile", skill_text)
+        self.assertIn("It is not an official Factor", skill_text)
+        self.assertIn("a certified MBTI result", skill_text)
+
+    def test_active_docs_reference_exactly_the_current_official_factor_set(self) -> None:
+        expected_ids = {f"official.{slug}" for slug in EXPECTED_OFFICIAL_FACTOR_SLUGS}
+        skill_text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+        documented_skill_ids = set(re.findall(r"official\.[a-z0-9-]+", skill_text))
+
+        self.assertEqual(documented_skill_ids, expected_ids)
+
+        readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
+        architecture_text = (ROOT / "docs" / "architecture" / "factor-system-concepts.md").read_text(
+            encoding="utf-8"
+        )
+        report_contract_text = (
+            ROOT / "templates" / "ai-usage-profile-report" / "report-data-contract.md"
+        ).read_text(encoding="utf-8")
+        golden_readme_text = (ROOT / "benchmarks" / "golden" / "README.md").read_text(encoding="utf-8")
+        factor_table_sections = {
+            "README.md": readme_text.split("当前 official factors 覆盖：", 1)[1].split(
+                "## Factor Input", 1
+            )[0],
+            "docs/architecture/factor-system-concepts.md": architecture_text.split(
+                "## 6. 当前七个 Official Factor 的角色", 1
+            )[1].split("## 7.", 1)[0],
+        }
+        factor_list_sections = {
+            "templates/ai-usage-profile-report/report-data-contract.md": report_contract_text.split(
+                "参与确定性提取的 official Factor 固定为七个：", 1
+            )[1].splitlines()[0],
+            "benchmarks/golden/README.md": golden_readme_text.split(
+                "7 个 official Factor 标准答案：", 1
+            )[1].splitlines()[0],
+        }
+
+        for path, section in factor_table_sections.items():
+            with self.subTest(path=path):
+                documented_slugs = set(re.findall(r"^\| `([a-z][a-z0-9-]+)` \|", section, re.MULTILINE))
+                self.assertEqual(documented_slugs, EXPECTED_OFFICIAL_FACTOR_SLUGS)
+
+        for path, section in factor_list_sections.items():
+            with self.subTest(path=path):
+                documented_slugs = set(re.findall(r"`([a-z][a-z0-9-]+)`", section))
+                self.assertEqual(documented_slugs, EXPECTED_OFFICIAL_FACTOR_SLUGS)
 
     def test_factor_xml_matches_python_factor_identity_and_outputs(self) -> None:
         for slug in EXPECTED_OFFICIAL_FACTOR_SLUGS:

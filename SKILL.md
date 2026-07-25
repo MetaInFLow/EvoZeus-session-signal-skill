@@ -1,6 +1,6 @@
 ---
 name: evozeus-session-signal-skill
-description: Use when analyzing Codex or agent chat sessions with EvoZeus session signal factors to produce evidence-backed review signals, route reviewed sessions toward the right artifact type, diagnose dissatisfaction, repeated requests, tool failures, task completion, resource usage, or generate/review a High-Quality Session Review Page.
+description: Use when analyzing Codex or agent chat sessions with EvoZeus session signal factors to produce evidence-backed review signals, route reviewed sessions toward the right artifact type, diagnose dissatisfaction, repeated requests, tool failures, task completion, resource usage, semantic phrase patterns, synthesize an MBTI/personality profile, or generate/review a High-Quality Session Review Page.
 ---
 
 # EvoZeus Session Signal Skill
@@ -20,11 +20,11 @@ The method layer is for finding sessions that deserve human review and the right
 ## Operating Rules
 
 1. Use real scanner, runner, ledger, or source session data for current-result requests; do not use fixture or mock factor outputs unless the user explicitly asks for a sample.
-2. Separate active gates, diagnostics, and deprecated factors:
+2. Separate the seven official factors by role:
    - Active gates: `official.task-completion`, `official.user-input-sentiment`, `official.repeated-request`.
-   - Diagnostics: `official.tool-failure-frequency`, `official.session-resource-usage`, `official.key-sentence-trends`.
-   - Deprecated candidates: `official.usage-sentence-cloud`.
-3. Do not let diagnostics create a high-value conclusion by themselves. Resource count, key-sentence density, long session length, or tool volume explain a case; they do not prove quality.
+   - Diagnostics: `official.tool-failure-frequency`, `official.session-resource-usage`, `official.key-sentence-trends`, `official.semantic-phrase-clusters`.
+   - MBTI/personality profile is a Skill-level composite profile derived from multiple signals. It is not an official Factor or `OfficialFactorResult`.
+3. Do not let diagnostics create a high-value conclusion by themselves. Resource count, key-sentence density, semantic cluster prevalence, long session length, or tool volume explain a case; they do not prove quality.
 4. Prefer a conclusion supported by one strong direct gate plus concrete event evidence, or two weaker direct gates that point to the same lesson.
 5. Keep coverage explicit. A scanned-but-not-analyzed session has no quality judgment.
 6. Store and display compact evidence: `session_id`, `event_id`, source locator, short previews, factor statistics, evidence refs, and derived labels. Do not store raw chat bodies as factor datasets.
@@ -62,7 +62,7 @@ Pruning rules:
 - `completed` with no other direct gate usually becomes `not_skill_candidate`.
 - `blocked` or `not_completed` must come from explicit final failure/blocking semantics, not interim progress text.
 - Recovered tool failures are diagnostics unless they reveal a reusable environment rule.
-- Deprecated factors must never create or upgrade a high-value conclusion.
+- A Skill-level MBTI/personality profile is context only. It must not create or upgrade a high-value conclusion by itself.
 - A `high_quality_session` is a review candidate, not an accepted SKILL artifact.
 - A correction or dissatisfaction event should remain searchable, but it should not automatically become high-value without enough context to learn from.
 - `workflow_skill_candidate` should be rare; it needs concrete "what changed / what was produced / what pattern transfers" evidence.
@@ -111,7 +111,11 @@ Use native static components only when useful, especially `ui.native-static.tabl
 - `official.tool-failure-frequency`: Do not count wrapper text as a tool name. Wrapper success is not command success; use structured status, exit code, stderr, and call/result pairing.
 - `official.session-resource-usage`: Verified skills must come from explicit fields or clear assistant declaration. Environment variables and placeholders are diagnostics.
 - `official.key-sentence-trends`: Interpret by role. User intent and assistant output are different evidence types.
-- `official.usage-sentence-cloud`: Use for batch phrase discovery only; filter paths, JSON keys, environment variables, and system fragments.
+- `official.semantic-phrase-clusters`: Use direct-user phrases only. Treat clusters as stable intent evidence, not as proof of quality; retain representative phrases, variants, counts, and event refs.
+
+## MBTI Profile Synthesis Note
+
+MBTI/personality profile is a Skill-level composite profile synthesized from multiple official factor signals. It is not an official Factor, a certified MBTI result, or a stable identity label. Require multi-dimensional evidence and return an insufficient-evidence state when the signal set is thin.
 
 ## Updating Session Signal Factors
 

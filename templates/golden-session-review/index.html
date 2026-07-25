@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="__ZEUS_LOGO_DATA_URI__">
+  <title>Golden Session 人工标注审阅台 · EvoZeus</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f2f3ef;
+      --paper: #fbfbf8;
+      --surface: #ffffff;
+      --surface-2: #f6f6f2;
+      --ink: #171a20;
+      --ink-2: #343943;
+      --muted: #717783;
+      --line: #dfe1dc;
+      --line-strong: #c9ccc5;
+      --nav: #171a20;
+      --nav-2: #242830;
+      --nav-muted: #aeb4bf;
+      --gold: #8a6418;
+      --gold-soft: #f4ecd7;
+      --red: #a43f32;
+      --red-soft: #fbe9e6;
+      --green: #176d52;
+      --green-soft: #e4f2eb;
+      --blue: #285f91;
+      --blue-soft: #e7eef6;
+      --purple: #735399;
+      --purple-soft: #eee8f5;
+      --orange: #98601e;
+      --orange-soft: #f8ecdc;
+      --shadow: 0 18px 50px rgba(26, 30, 35, .07);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100dvh;
+      background: var(--page);
+      color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      font-variant-numeric: tabular-nums;
+    }
+
+    button { font: inherit; }
+    button:focus-visible { outline: 3px solid rgba(40, 95, 145, .28); outline-offset: 2px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; line-height: 1.15; letter-spacing: 0; }
+    h2 { font-size: 18px; line-height: 1.25; letter-spacing: 0; }
+    h3 { font-size: 14px; line-height: 1.35; letter-spacing: 0; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 284px minmax(0, 1fr);
+      min-height: 100dvh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      overflow: auto;
+      padding: 22px 16px;
+      background: var(--nav);
+      color: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 6px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .brand img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 12px rgba(193, 145, 52, .18));
+    }
+
+    .brand-name { font-size: 18px; font-weight: 750; }
+    .brand-sub { margin-top: 2px; color: var(--nav-muted); font-size: 11px; }
+
+    .sidebar-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin: 18px 0;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .sidebar-stat { padding: 10px 7px; background: var(--nav); text-align: center; }
+    .sidebar-stat strong { display: block; font-size: 17px; }
+    .sidebar-stat span { color: var(--nav-muted); font-size: 9px; }
+
+    .nav-label {
+      margin: 20px 6px 8px;
+      color: var(--nav-muted);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .session-list { display: grid; gap: 5px; }
+    .mobile-session-picker { display: none; }
+    .session-nav {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      padding: 9px;
+      background: transparent;
+      color: var(--nav-muted);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .session-nav:hover { background: var(--nav-2); color: #fff; }
+    .session-nav[aria-pressed="true"] {
+      border-color: rgba(255, 255, 255, .15);
+      background: #fff;
+      color: var(--nav);
+    }
+
+    .nav-index {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .08);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .session-nav[aria-pressed="true"] .nav-index { background: var(--nav); color: #fff; }
+    .nav-title { min-width: 0; padding-top: 2px; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+
+    .main { min-width: 0; padding: 28px; }
+    .workspace { width: min(100%, 1480px); margin: 0 auto; }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .eyebrow {
+      margin-bottom: 7px;
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .page-copy { margin-top: 7px; max-width: 66ch; color: var(--muted); }
+    .golden-seal {
+      flex: 0 0 auto;
+      padding: 8px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--gold-soft);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .session-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      padding: 24px 0 18px;
+    }
+
+    .session-id { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+    .session-title { margin-top: 5px; font-size: 23px; }
+    .session-note { margin-top: 7px; color: var(--ink-2); }
+    .source-note { margin-top: 3px; color: var(--muted); font-size: 12px; }
+
+    .provenance {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(100px, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--line);
+    }
+
+    .provenance-item { min-width: 0; padding: 9px 10px; background: var(--surface); }
+    .provenance-item strong { display: block; color: var(--ink); font-size: 12px; overflow-wrap: anywhere; }
+    .provenance-item span { color: var(--muted); font-size: 9px; }
+    .provenance-item.source strong { color: var(--green); }
+
+    .session-counts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .count-item { min-width: 88px; padding: 8px 10px; border-left: 2px solid var(--line-strong); }
+    .count-item strong { display: block; font-size: 17px; }
+    .count-item span { color: var(--muted); font-size: 10px; }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(310px, 370px);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .conversation {
+      min-width: 0;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head p { color: var(--muted); font-size: 11px; }
+    .section-controls { display: grid; justify-items: end; gap: 7px; }
+    .view-switch {
+      display: inline-flex;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+    }
+    .view-button {
+      min-height: 32px;
+      border: 0;
+      border-right: 1px solid var(--line-strong);
+      padding: 5px 9px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .view-button:last-child { border-right: 0; }
+    .view-button:hover { background: var(--surface-2); color: var(--ink); }
+    .view-button[aria-pressed="true"] { background: var(--nav); color: #fff; }
+    .message-list { display: grid; gap: 20px; padding-top: 22px; }
+    .message { display: flex; gap: 10px; align-items: flex-start; }
+    .message.user { flex-direction: row-reverse; }
+    .message.tool, .message.task_complete { justify-content: center; }
+
+    .avatar {
+      flex: 0 0 30px;
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: #e3e5e1;
+      color: var(--ink-2);
+      font-size: 10px;
+      font-weight: 750;
+    }
+
+    .message.user .avatar { background: var(--nav); color: #fff; }
+    .message.tool .avatar, .message.task_complete .avatar { display: none; }
+    .message-body { width: min(82%, 760px); min-width: 0; }
+    .message.user .message-body { display: grid; justify-items: end; }
+    .message.tool .message-body, .message.task_complete .message-body { width: min(92%, 820px); }
+
+    .speaker { margin: 0 2px 5px; color: var(--muted); font-size: 10px; }
+    .message.user .speaker { text-align: right; }
+    .bubble {
+      width: fit-content;
+      max-width: 100%;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .message.user .bubble { background: var(--nav); border-color: var(--nav); color: #fff; }
+    .message.tool .bubble, .message.task_complete .bubble {
+      width: 100%;
+      padding: 8px 11px;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+    }
+
+    .annotations { width: 100%; display: grid; gap: 6px; margin-top: 7px; }
+    .annotation {
+      display: grid;
+      grid-template-columns: minmax(100px, 144px) minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 8px 10px;
+      border-left: 3px solid var(--line-strong);
+      border-radius: 0 6px 6px 0;
+      background: var(--surface);
+      box-shadow: 0 6px 18px rgba(26, 30, 35, .04);
+    }
+
+    .annotation-factor { color: var(--muted); font-size: 10px; font-weight: 700; }
+    .annotation-value { color: var(--ink); font-size: 12px; font-weight: 750; }
+    .annotation-detail { margin-top: 2px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .annotation[data-tone="red"] { border-color: var(--red); background: var(--red-soft); }
+    .annotation[data-tone="green"] { border-color: var(--green); background: var(--green-soft); }
+    .annotation[data-tone="blue"] { border-color: var(--blue); background: var(--blue-soft); }
+    .annotation[data-tone="gold"] { border-color: var(--gold); background: var(--gold-soft); }
+    .annotation[data-tone="purple"] { border-color: var(--purple); background: var(--purple-soft); }
+    .annotation[data-tone="orange"] { border-color: var(--orange); background: var(--orange-soft); }
+
+    .empty-annotation {
+      width: fit-content;
+      max-width: 100%;
+      margin-top: 6px;
+      padding: 5px 8px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .message.user .empty-annotation { justify-self: end; }
+    .message.is-dimmed { opacity: .28; }
+    .message-empty {
+      padding: 42px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .page-button {
+      min-width: 84px;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink-2);
+      cursor: pointer;
+    }
+    .page-button:hover:not(:disabled) { border-color: var(--nav); color: var(--nav); }
+    .page-button:disabled { opacity: .36; cursor: not-allowed; }
+    .page-status { color: var(--muted); font-size: 11px; text-align: center; }
+
+    .factor-panel {
+      position: sticky;
+      top: 20px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .factor-panel-head { padding: 18px; border-bottom: 1px solid var(--line); }
+    .factor-panel-head p { margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .factor-clear {
+      width: calc(100% - 24px);
+      margin: 12px;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink-2);
+      cursor: pointer;
+    }
+
+    .factor-clear:hover, .factor-clear[aria-pressed="true"] { background: var(--nav); color: #fff; border-color: var(--nav); }
+    .factor-list { border-top: 1px solid var(--line); }
+    .factor-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 9px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+      padding: 13px 15px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .factor-row:last-child { border-bottom: 0; }
+    .factor-row:hover, .factor-row[aria-pressed="true"] { background: var(--surface-2); }
+    .factor-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 2px; background: var(--line-strong); }
+    .factor-dot[data-tone="red"] { background: var(--red); }
+    .factor-dot[data-tone="green"] { background: var(--green); }
+    .factor-dot[data-tone="blue"] { background: var(--blue); }
+    .factor-dot[data-tone="gold"] { background: var(--gold); }
+    .factor-dot[data-tone="purple"] { background: var(--purple); }
+    .factor-dot[data-tone="orange"] { background: var(--orange); }
+    .factor-name { font-weight: 750; }
+    .factor-summary { margin-top: 3px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .factor-evidence { color: var(--muted); font-size: 10px; white-space: nowrap; }
+    .factor-status { margin-top: 5px; font-size: 10px; font-weight: 700; }
+    .factor-status.active { color: var(--green); }
+    .factor-status.empty { color: var(--muted); }
+
+    .factor-details {
+      display: none;
+      grid-column: 2 / -1;
+      gap: 4px;
+      margin: 5px 0 0;
+      padding: 0;
+      list-style: none;
+      color: var(--ink-2);
+      font-size: 10px;
+    }
+
+    .factor-row[aria-pressed="true"] .factor-details { display: grid; }
+    .factor-details li { padding-left: 10px; border-left: 1px solid var(--line-strong); overflow-wrap: anywhere; }
+
+    .footer { padding: 22px 0 4px; color: var(--muted); font-size: 11px; text-align: center; }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 238px minmax(0, 1fr); }
+      .main { padding: 22px; }
+      .review-grid { grid-template-columns: minmax(0, 1fr) 310px; gap: 16px; }
+      .message-body { width: 88%; }
+      .provenance { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+    }
+
+    @media (max-width: 860px) {
+      .app { display: block; }
+      .sidebar { position: static; width: 100%; height: auto; overflow: visible; }
+      .sidebar-meta { max-width: 420px; }
+      .session-list, .sidebar > .nav-label { display: none; }
+      .mobile-session-picker { display: grid; gap: 6px; margin-top: 14px; }
+      .mobile-session-picker label { color: var(--nav-muted); font-size: 10px; font-weight: 700; }
+      .mobile-session-picker select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: var(--nav-2);
+        color: #fff;
+        font: inherit;
+      }
+      .main { padding: 20px; }
+      .review-grid { grid-template-columns: 1fr; }
+      .factor-panel { position: static; }
+      .provenance { grid-template-columns: repeat(2, minmax(100px, 1fr)); }
+    }
+
+    @media (max-width: 600px) {
+      .sidebar { padding: 16px 12px; }
+      .session-list { grid-template-columns: 1fr; }
+      .main { padding: 14px; }
+      .page-header { align-items: flex-start; }
+      .golden-seal { display: none; }
+      .session-head { grid-template-columns: 1fr; }
+      .session-counts { justify-content: flex-start; }
+      .conversation { padding: 14px; }
+      .message-body { width: calc(100% - 40px); }
+      .message.tool .message-body, .message.task_complete .message-body { width: 100%; }
+      .annotation { grid-template-columns: 1fr; gap: 2px; }
+      .session-title { font-size: 20px; }
+      .section-head { align-items: flex-start; }
+      .section-controls { display: grid; justify-items: end; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="__ZEUS_LOGO_DATA_URI__" alt="EvoZeus Zeus 标志">
+        <div>
+          <div class="brand-name">EvoZeus</div>
+          <div class="brand-sub">Golden Benchmark Review</div>
+        </div>
+      </div>
+
+      <div class="sidebar-meta" aria-label="基准概览">
+        <div class="sidebar-stat"><strong id="sessionTotal">0</strong><span>SESSION</span></div>
+        <div class="sidebar-stat"><strong id="factorTotal">0</strong><span>FACTOR</span></div>
+        <div class="sidebar-stat"><strong id="annotationTotal">0</strong><span>人工标签</span></div>
+      </div>
+
+      <div class="nav-label">已标注 Session</div>
+      <nav class="session-list" id="sessionList" aria-label="Golden Session 列表"></nav>
+      <div class="mobile-session-picker">
+        <label for="mobileSessionSelect">选择要审阅的 Session</label>
+        <select id="mobileSessionSelect"></select>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="workspace">
+        <header class="page-header">
+          <div>
+            <div class="eyebrow">zeusAorN · Human Reviewed</div>
+            <h1>Golden Session 人工标注审阅台</h1>
+            <p class="page-copy">逐句查看聊天原文、人工标签和判断依据。这里展示的是人工确认的标准答案，用于检查 Factor 算法是否判断正确。</p>
+          </div>
+          <div class="golden-seal">人工金标 · 不随算法自动变化</div>
+        </header>
+
+        <section class="session-head" aria-labelledby="sessionTitle">
+          <div>
+            <div class="session-id" id="sessionId"></div>
+            <h2 class="session-title" id="sessionTitle"></h2>
+            <p class="session-note" id="sessionNote"></p>
+            <p class="source-note" id="sourceNote"></p>
+          </div>
+          <div class="session-counts" aria-label="当前 Session 概览">
+            <div class="count-item"><strong id="eventCount">0</strong><span>条聊天记录</span></div>
+            <div class="count-item"><strong id="currentAnnotationCount">0</strong><span>个人工标签</span></div>
+          </div>
+          <div class="provenance" id="provenance" aria-label="真实来源证明"></div>
+        </section>
+
+        <div class="review-grid">
+          <section class="conversation" aria-labelledby="conversationTitle">
+            <div class="section-head">
+              <h2 id="conversationTitle">真实聊天记录</h2>
+              <div class="section-controls">
+                <div class="view-switch" aria-label="记录查看模式">
+                  <button class="view-button" type="button" data-view-mode="conversation" aria-pressed="true">用户与 AI</button>
+                  <button class="view-button" type="button" data-view-mode="evidence" aria-pressed="false">人工证据</button>
+                  <button class="view-button" type="button" data-view-mode="all" aria-pressed="false">完整事件</button>
+                </div>
+                <p id="visibleEventCount">默认隐藏工具噪声</p>
+              </div>
+            </div>
+            <div class="message-list" id="messageList"></div>
+            <nav class="pagination" aria-label="聊天记录分页">
+              <button class="page-button" id="pagePrevious" type="button">上一页</button>
+              <span class="page-status" id="pageStatus"></span>
+              <button class="page-button" id="pageNext" type="button">下一页</button>
+            </nav>
+          </section>
+
+          <aside class="factor-panel" aria-labelledby="factorTitle">
+            <div class="factor-panel-head">
+              <h2 id="factorTitle">7 个 Factor 的人工答案</h2>
+              <p>点击某项，只突出查看它标注过的句子。</p>
+            </div>
+            <button class="factor-clear" id="factorClear" type="button" aria-pressed="true">查看全部标注</button>
+            <div class="factor-list" id="factorList"></div>
+          </aside>
+        </div>
+
+        <footer class="footer">EvoZeus Session Signal · Golden Benchmark 仅保存脱敏后的最小证据</footer>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const REPORT = __GOLDEN_REPORT_DATA__;
+    const PAGE_SIZE = 40;
+    const state = { sessionId: REPORT.sessions[0]?.golden_id || "", factor: "all", view: "conversation", page: 0 };
+
+    const sessionList = document.getElementById("sessionList");
+    const mobileSessionSelect = document.getElementById("mobileSessionSelect");
+    const messageList = document.getElementById("messageList");
+    const factorList = document.getElementById("factorList");
+    const factorClear = document.getElementById("factorClear");
+    const viewButtons = [...document.querySelectorAll("button[data-view-mode]")];
+    const pagePrevious = document.getElementById("pagePrevious");
+    const pageNext = document.getElementById("pageNext");
+
+    document.getElementById("sessionTotal").textContent = REPORT.session_count;
+    document.getElementById("factorTotal").textContent = REPORT.factor_count;
+    document.getElementById("annotationTotal").textContent = REPORT.annotation_count;
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function currentSession() {
+      return REPORT.sessions.find((session) => session.golden_id === state.sessionId) || REPORT.sessions[0];
+    }
+
+    function renderNavigation() {
+      sessionList.innerHTML = REPORT.sessions.map((session, index) => `
+        <button class="session-nav" type="button" data-session-id="${escapeHtml(session.golden_id)}" aria-pressed="${session.golden_id === state.sessionId}">
+          <span class="nav-index">${String(index + 1).padStart(2, "0")}</span>
+          <span class="nav-title">${escapeHtml(session.title)}</span>
+        </button>
+      `).join("");
+
+      sessionList.querySelectorAll("button[data-session-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.sessionId = button.dataset.sessionId;
+          state.factor = "all";
+          state.view = "conversation";
+          state.page = 0;
+          render();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      });
+
+      mobileSessionSelect.innerHTML = REPORT.sessions.map((session, index) => `
+        <option value="${escapeHtml(session.golden_id)}" ${session.golden_id === state.sessionId ? "selected" : ""}>
+          ${String(index + 1).padStart(2, "0")} · ${escapeHtml(session.title)}
+        </option>
+      `).join("");
+      mobileSessionSelect.onchange = () => {
+        state.sessionId = mobileSessionSelect.value;
+        state.factor = "all";
+        state.view = "conversation";
+        state.page = 0;
+        render();
+      };
+    }
+
+    function renderHeader(session) {
+      document.getElementById("sessionId").textContent = session.golden_id;
+      document.getElementById("sessionTitle").textContent = session.title;
+      document.getElementById("sessionNote").textContent = session.review_note;
+      document.getElementById("sourceNote").textContent = session.source_note;
+      document.getElementById("eventCount").textContent = session.events.length;
+      document.getElementById("currentAnnotationCount").textContent = session.annotation_count;
+      const provenance = session.provenance || {};
+      const fingerprint = String(provenance.source_fingerprint || "");
+      document.getElementById("provenance").innerHTML = `
+        <div class="provenance-item source"><strong>${session.is_real_codex_session ? "真实 Codex 主线程" : "人工测试样例"}</strong><span>样本来源</span></div>
+        <div class="provenance-item"><strong>${escapeHtml(provenance.original_event_count || session.events.length)}</strong><span>原始事件</span></div>
+        <div class="provenance-item"><strong>${escapeHtml(provenance.retained_event_count || session.events.length)}</strong><span>保留事件</span></div>
+        <div class="provenance-item"><strong>${escapeHtml(provenance.direct_user_count || 0)}</strong><span>真实用户轮次</span></div>
+        <div class="provenance-item"><strong>${escapeHtml(provenance.redaction_count || 0)} / ${escapeHtml(provenance.truncated_event_count || 0)}</strong><span>脱敏 / 截断</span></div>
+        <div class="provenance-item"><strong>${escapeHtml(fingerprint ? fingerprint.slice(0, 18) + "…" : "无")}</strong><span>${escapeHtml(provenance.source_record_date || "")} · 来源指纹</span></div>
+      `;
+    }
+
+    function visibleEvents(session) {
+      if (state.factor !== "all") {
+        return session.events.filter((event) => event.labels.some((label) => label.factor === state.factor));
+      }
+      if (state.view === "evidence") {
+        return session.events.filter((event) => event.labels.length > 0);
+      }
+      if (state.view === "all") {
+        return session.events;
+      }
+      return session.events.filter((event) => event.role === "user" || event.role === "assistant");
+    }
+
+    function renderMessages(session) {
+      const filteredEvents = visibleEvents(session);
+      const totalPages = Math.max(1, Math.ceil(filteredEvents.length / PAGE_SIZE));
+      state.page = Math.min(state.page, totalPages - 1);
+      const pageStart = state.page * PAGE_SIZE;
+      const renderedEvents = filteredEvents.slice(pageStart, pageStart + PAGE_SIZE);
+      const rangeStart = filteredEvents.length ? pageStart + 1 : 0;
+      const rangeEnd = pageStart + renderedEvents.length;
+      const modeLabel = state.factor !== "all"
+        ? `${state.factor}的证据`
+        : { conversation: "用户与 AI", evidence: "人工证据", all: "完整事件" }[state.view];
+      document.getElementById("visibleEventCount").textContent = `${modeLabel} · ${rangeStart}–${rangeEnd} / ${filteredEvents.length} 条（原始保留 ${session.events.length} 条）`;
+      viewButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(state.factor === "all" && button.dataset.viewMode === state.view));
+      });
+      messageList.innerHTML = renderedEvents.length ? renderedEvents.map((event) => {
+        const visibleLabels = state.factor === "all"
+          ? event.labels
+          : event.labels.filter((label) => label.factor === state.factor);
+        const annotations = visibleLabels.length
+          ? visibleLabels.map((label) => `
+              <div class="annotation" data-tone="${escapeHtml(label.tone)}">
+                <div class="annotation-factor">${escapeHtml(label.factor)}</div>
+                <div>
+                  <div class="annotation-value">${escapeHtml(label.value)}</div>
+                  <div class="annotation-detail">${escapeHtml(label.detail)}</div>
+                </div>
+              </div>
+            `).join("")
+          : state.factor === "all"
+            ? `<div class="empty-annotation">${escapeHtml(event.empty_label)}</div>`
+            : "";
+        const avatarText = event.role === "user" ? "你" : event.role === "assistant" ? "AI" : "";
+        return `
+          <article class="message ${escapeHtml(event.role)}" data-event-id="${escapeHtml(event.event_id)}">
+            <div class="avatar" aria-hidden="true">${avatarText}</div>
+            <div class="message-body">
+              <div class="speaker">${escapeHtml(event.role_name)} · 原始 L${escapeHtml(event.source_line || "-")} · ${escapeHtml(event.event_id)}</div>
+              <div class="bubble">${escapeHtml(event.text)}</div>
+              <div class="annotations">${annotations}</div>
+            </div>
+          </article>
+        `;
+      }).join("") : `<div class="message-empty">当前模式下没有对应记录。</div>`;
+      document.getElementById("pageStatus").textContent = `第 ${state.page + 1} / ${totalPages} 页`;
+      pagePrevious.disabled = state.page === 0;
+      pageNext.disabled = state.page >= totalPages - 1;
+    }
+
+    function renderFactors(session) {
+      factorClear.setAttribute("aria-pressed", String(state.factor === "all"));
+      factorList.innerHTML = session.factors.map((factor) => {
+        const pressed = state.factor === factor.name;
+        const details = factor.details.length
+          ? factor.details.map((detail) => `<li>${escapeHtml(detail)}</li>`).join("")
+          : `<li>这个 Session 没有对应证据。</li>`;
+        return `
+          <button class="factor-row" type="button" data-factor-name="${escapeHtml(factor.name)}" aria-pressed="${pressed}">
+            <span class="factor-dot" data-tone="${escapeHtml(factor.tone)}" aria-hidden="true"></span>
+            <span>
+              <span class="factor-name">${escapeHtml(factor.name)}</span>
+              <span class="factor-summary">${escapeHtml(factor.summary)}</span>
+              <span class="factor-status ${factor.active ? "active" : "empty"}">${factor.active ? "有人工结论" : "本次未命中"}</span>
+            </span>
+            <span class="factor-evidence">${factor.evidence_count} 条证据</span>
+            <ul class="factor-details">${details}</ul>
+          </button>
+        `;
+      }).join("");
+
+      factorList.querySelectorAll("button[data-factor-name]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.factor = state.factor === button.dataset.factorName ? "all" : button.dataset.factorName;
+          state.page = 0;
+          renderMessages(session);
+          renderFactors(session);
+        });
+      });
+    }
+
+    factorClear.addEventListener("click", () => {
+      state.factor = "all";
+      state.page = 0;
+      const session = currentSession();
+      renderMessages(session);
+      renderFactors(session);
+    });
+
+    viewButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.factor = "all";
+        state.view = button.dataset.viewMode;
+        state.page = 0;
+        const session = currentSession();
+        renderMessages(session);
+        renderFactors(session);
+      });
+    });
+
+    pagePrevious.addEventListener("click", () => {
+      if (state.page === 0) return;
+      state.page -= 1;
+      renderMessages(currentSession());
+      document.getElementById("conversationTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    pageNext.addEventListener("click", () => {
+      const totalPages = Math.max(1, Math.ceil(visibleEvents(currentSession()).length / PAGE_SIZE));
+      if (state.page >= totalPages - 1) return;
+      state.page += 1;
+      renderMessages(currentSession());
+      document.getElementById("conversationTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    function render() {
+      const session = currentSession();
+      renderNavigation();
+      renderHeader(session);
+      renderMessages(session);
+      renderFactors(session);
+    }
+
+    render();
+  </script>
+</body>
+</html>

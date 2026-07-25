@@ -29,10 +29,10 @@
     <presentation id="task_completion_json" component_ref="builtin.json.v1" route="drawer" data_ref="task_completion_verdict" priority="160" />
   </presentations>
   <dependencies>
-    <package name="scikit-learn" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
-    <package name="jieba" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
-    <package name="rapidfuzz" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
-    <package name="snownlp" required="true" install="python3 -m pip install 'evozeus-session-signal-skill[nlp]'" />
+    <package name="scikit-learn" required="true" install="python3 -m pip install 'EvoZeus-session-signal-skill[nlp]'" />
+    <package name="jieba" required="true" install="python3 -m pip install 'EvoZeus-session-signal-skill[nlp]'" />
+    <package name="rapidfuzz" required="true" install="python3 -m pip install 'EvoZeus-session-signal-skill[nlp]'" />
+    <package name="snownlp" required="true" install="python3 -m pip install 'EvoZeus-session-signal-skill[nlp]'" />
   </dependencies>
   <evidence_policy>
     <raw_body_allowed>false</raw_body_allowed>

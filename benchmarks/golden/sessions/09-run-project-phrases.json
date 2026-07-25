@@ -1,0 +1,29 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "09-run-project-phrases",
+  "source_note": "从多次要求运行项目的真实表达脱敏整理",
+  "review_note": "前四句属于同一运行项目意图，报告查看请求不能混入",
+  "session": {
+    "session_id": "golden-09",
+    "events": [
+      {"id": "user-run-1", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "把项目拉起来"},
+      {"id": "assistant-run-1", "role": "assistant", "factor_channel": "assistant_result", "text": "我先启动。"},
+      {"id": "user-run-2", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "tauri 跑起来我看下"},
+      {"id": "assistant-run-2", "role": "assistant", "factor_channel": "assistant_result", "text": "正在处理。"},
+      {"id": "user-run-3", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "启动 dev server"},
+      {"id": "assistant-run-3", "role": "assistant", "factor_channel": "assistant_result", "text": "我继续。"},
+      {"id": "user-run-4", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "跑一下这个项目"},
+      {"id": "assistant-run-4", "role": "assistant", "factor_channel": "assistant_result", "text": "正在启动。"},
+      {"id": "user-report", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "把报告拉起来看下"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "not_matched", "verdict": "unknown", "verification": "none", "evidence_event_ids": []},
+    "official.user-input-sentiment": {"status": "not_matched", "events": [], "evidence_event_ids": []},
+    "official.repeated-request": {"status": "matched", "chains": [{"first_event_id": "user-run-1", "repeat_event_id": "user-run-2"}, {"first_event_id": "user-run-1", "repeat_event_id": "user-run-3"}, {"first_event_id": "user-run-1", "repeat_event_id": "user-run-4"}], "evidence_event_ids": ["user-run-2", "user-run-3", "user-run-4"]},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "not_matched", "resources": [], "evidence_event_ids": []},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "tauri 跑起来我看下", "relation_type": "action_request", "count": 1}, {"label": "启动 dev server", "relation_type": "action_request", "count": 1}, {"label": "把报告拉起来看下", "relation_type": "action_request", "count": 1}, {"label": "把项目拉起来", "relation_type": "action_request", "count": 1}, {"label": "跑一下这个项目", "relation_type": "action_request", "count": 1}], "evidence_event_ids": ["user-run-1", "user-run-2", "user-run-3", "user-run-4", "user-report"]},
+    "official.semantic-phrase-clusters": {"status": "matched", "clusters": [{"cluster_id": "intent.run_project", "label": "启动/运行项目", "variants": ["tauri 跑起来我看下", "启动 dev server", "把项目拉起来", "跑一下这个项目"], "turn_count": 4}], "evidence_event_ids": ["user-run-1", "user-run-2", "user-run-3", "user-run-4"]}
+  }
+}

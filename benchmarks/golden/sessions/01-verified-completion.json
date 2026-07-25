@@ -1,0 +1,26 @@
+{
+  "schema_version": "evozeus.session-golden.v1",
+  "golden_id": "01-verified-completion",
+  "source_note": "从真实开发任务完成场景脱敏整理",
+  "review_note": "代码修改后存在明确的成功测试输出",
+  "session": {
+    "session_id": "golden-01",
+    "events": [
+      {"id": "user-request", "role": "user", "factor_channel": "user_input", "message_scope": "direct_user", "text": "请修复登录按钮并运行测试"},
+      {"id": "assistant-change", "role": "assistant", "factor_channel": "assistant_result", "text": "已修复登录按钮。"},
+      {"id": "tool-test-call", "role": "tool", "factor_channel": "tool_usage", "tool_name": "exec_command", "codex_event_type": "function_call", "tool_result": {"name": "exec_command", "call_id": "call-test"}, "text": "pytest -q"},
+      {"id": "tool-test-output", "role": "tool", "factor_channel": "tool_result", "tool_name": "function_call_output", "codex_event_type": "function_call_output", "tool_result": {"call_id": "call-test", "status": "success", "exit_code": 0}, "text": "12 passed\nProcess exited with code 0"},
+      {"id": "assistant-final", "role": "assistant", "factor_channel": "assistant_result", "text": "修复完成，测试通过。"},
+      {"id": "task-complete", "role": "task_complete", "factor_channel": "assistant_result", "text": "Task complete"}
+    ]
+  },
+  "expected_factor_results": {
+    "official.task-completion": {"status": "matched", "verdict": "completed", "verification": "verified", "evidence_event_ids": ["tool-test-output"]},
+    "official.user-input-sentiment": {"status": "not_matched", "events": [], "evidence_event_ids": []},
+    "official.repeated-request": {"status": "not_matched", "chains": [], "evidence_event_ids": []},
+    "official.tool-failure-frequency": {"status": "not_matched", "tools": [], "evidence_event_ids": []},
+    "official.session-resource-usage": {"status": "matched", "resources": [{"resource_type": "tool", "resource_name": "exec_command", "count": 1}], "evidence_event_ids": ["tool-test-call"]},
+    "official.key-sentence-trends": {"status": "matched", "phrases": [{"label": "修复登录按钮并运行测试", "relation_type": "action_request", "count": 1}], "evidence_event_ids": ["user-request"]},
+    "official.semantic-phrase-clusters": {"status": "not_matched", "clusters": [], "evidence_event_ids": []}
+  }
+}

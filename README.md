@@ -1,6 +1,6 @@
-# evozeus-session-signal-skill
+# EvoZeus-session-signal-skill
 
-`evozeus-session-signal-skill` 当前定位为：**识别高价值 AI 协作历史记录的 Session Signal SKILL + official factor tools**。
+`EvoZeus-session-signal-skill` 当前定位为：**识别高价值 AI 协作历史记录的 Session Signal SKILL + official factor tools**。
 
 这个名字强调主角是 `SKILL.md` 方法层：它负责把聊天记录里的 session signals 合成为可复核的高价值候选；`factors/<slug>/` 是这套 SKILL 可以调用、解释和校准的 signal tools。这里的 `official` 只表示 factor contract / tool 稳定，不表示“所有可安装官方因子包的仓库”。它用于在当前 Codex / agent session 中找出需要被总结、沉淀或复盘的 sessions：大多数正常完成、低信息量、一次性任务应跳过；少数好案例、失败链路、用户纠偏、重复返工、工具卡点和异常资源使用才进入沉淀队列。
 
@@ -45,19 +45,20 @@ scanner/runtime
 - `tool-failure-frequency`：定位工具失败是否影响任务；默认是 diagnostic，只有和未完成、阻塞或明确环境规则叠加时才支撑 troubleshooting。
 - `session-resource-usage`：观察 tool、skill、MCP server 等资源是否被正确使用；默认是 diagnostic，用来还原可复用步骤。
 - `key-sentence-trends`：抽取用户和 assistant 的关键行动、对象、否定和交付句；默认是 diagnostic，用来写 SKILL 的触发条件和步骤。
-- `usage-sentence-cloud`：建议进入 deprecated 候选；词云更适合展示或探索，不应驱动 high-quality 判断。
+- `semantic-phrase-clusters`：把用户本人的同义短句归并为稳定意图簇；默认是 diagnostic，用于理解跨表达方式的请求习惯。
+
+MBTI 是 Session Signal SKILL 基于多个 official factor signals 生成的综合画像，不是 official Factor，不进入 official Factor 数量，也不能单独驱动 high-quality 判断。
 
 当前建议生命周期：
 
 | 生命周期 | Factor |
 | --- | --- |
 | `active` | `user-input-sentiment`、`task-completion`、`repeated-request` |
-| `diagnostic` | `tool-failure-frequency`、`session-resource-usage`、`key-sentence-trends` |
-| `deprecated` 候选 | `usage-sentence-cloud` |
+| `diagnostic` | `tool-failure-frequency`、`session-resource-usage`、`key-sentence-trends`、`semantic-phrase-clusters` |
 
 这些 factor 输出的是可筛选信号，不是单一总分。标准用法不是处理全部 session，而是先把 session 分成：`success_skill_candidate`、`problem_skill_candidate`、`failure_skill_candidate`、`repeat_skill_candidate`、`workflow_skill_candidate`、`review_needed` 和 `not_skill_candidate`。好案例和问题案例都可能是高价值 SKILL 候选。
 
-最终 HTML 报告应有独立 `High-Quality Session Review Page`：基于这 7 个 factor 的结果筛出 `high_quality_session`，把分析范围内其余 session 标成 `low_quality_session`，并展示每个高质量判断背后的 `factor_result_reasons`、证据引用和人工复核状态。报告必须明确 scanned / analyzed / not analyzed 的口径，不能把已扫描但未跑 factor 的 session 当成低质量。该页面只做展示期合成，不向 ledger 写入重复数据。
+最终 HTML 报告应有独立 `High-Quality Session Review Page`：基于 active gate 和 diagnostic factor 的结果筛出 `high_quality_session`，把分析范围内其余 session 标成 `low_quality_session`，并展示每个高质量判断背后的 `factor_result_reasons`、证据引用和人工复核状态。报告必须明确 scanned / analyzed / not analyzed 的口径，不能把已扫描但未跑 factor 的 session 当成低质量。该页面只做展示期合成，不向 ledger 写入重复数据。
 
 ## 边界
 
@@ -93,7 +94,7 @@ factors/
     factor.py
     spec.json
     session.json
-  usage-sentence-cloud/
+  semantic-phrase-clusters/
     FACTOR.xml
     factor.py
     spec.json
@@ -135,7 +136,7 @@ factors/
 | `task-completion` | `session` | `task_completion_verdict` | `builtin.table.v1` | 直接判断任务闭环状态；普通完成且无异常通常跳过，阻塞和未完成进入 failure SKILL 候选。 |
 | `user-input-sentiment` | `session` / `project` / `scan_record_set` | `user_sentiment` / `frequency_distribution` | `builtin.bar_chart.v1` / `builtin.table.v1` | 识别满意、不满、纠错和问题反馈；用户纠偏和问题反馈是强 guardrail 候选信号。 |
 | `session-resource-usage` | `session` / `project` / `scan_record_set` | `session_resource_usage` / `frequency_distribution` | `builtin.bar_chart.v1` / `builtin.table.v1` | Diagnostic。验证 tool、skill、MCP server 等资源是否真实支撑任务；用于还原可复用步骤和依赖。 |
-| `usage-sentence-cloud` | `session` / `project` / `scan_record_set` | `high_frequency_phrase_set` | `builtin.word_cloud.v1` | Deprecated 候选。词云可用于探索和展示，但不应驱动 high-quality 判断。 |
+| `semantic-phrase-clusters` | `session` | `semantic_phrase_cluster_set` | `builtin.table.v1` / `builtin.json.v1` | Diagnostic。归并 direct-user 同义短句，保留代表短句、变体、计数和事件证据，用于理解稳定请求习惯。 |
 
 ## Factor Input / Result / Visualization Contract
 
@@ -145,13 +146,38 @@ Official Factor 输出统一为 `OfficialFactorResult`。结果包含：
 
 - `target_type` / `target_id`：本次分析目标。
 - `scores` / `statistics`：小型数值和聚合结果。
-- `datasets`：可落账 read model，例如 high-frequency phrase set。
-- `presentations`：可插拔前端组件的展示 contract，例如 `builtin.word_cloud.v1`。
+- `datasets`：可落账 read model，例如 semantic phrase cluster set。
+- `presentations`：可插拔前端组件的展示 contract，例如 `builtin.table.v1`。
 - `evidence_refs`：指向 session event、scan record 或 prior factor result 的证据引用。
 
 FactorResult 不携带前端代码。前端组件由 infra 的 visualization component registry 加载；组件不可用时必须 fallback 到 `builtin.table.v1` 或 `builtin.json.v1`。
 
 新增 factor 的完整步骤见 [新建 Official Factor 指南](docs/guides/create-official-factor.md)。
+
+## Runtime Integration
+
+当前 P0 发布形态是 source checkout integration：`evozeus-runtime` 通过 `--official-repo-root /path/to/EvoZeus-session-signal-skill` 读取 `factors/` 和 `templates/`。
+
+这意味着使用者需要同时具备：
+
+- `EvoZeus-infra`：提供 `evozeus-runtime` CLI、scanner、runner、ledger 和 HTML 报告生成。
+- `EvoZeus-session-signal-skill`：提供七个 official factors、MBTI 综合画像方法、Session Signal SKILL 方法说明和报告模板资源。
+
+安装依赖：
+
+```bash
+python3 -m pip install -e ".[nlp]"
+```
+
+缺少 `scikit-learn`、`jieba`、`rapidfuzz` 或 `snownlp` 时，相关 factor 会失败或输出降级结果。
+
+如果只 `pip install EvoZeus-session-signal-skill`，不能假设 `factors/` 和 `templates/` 已经可被 runtime 发现。面向用户的稳定运行方式是把本 repo 作为 source checkout 传给 `evozeus-runtime`：
+
+```bash
+evozeus-runtime session-insights \
+  --workspace "$HOME" \
+  --official-repo-root "/path/to/EvoZeus-session-signal-skill"
+```
 
 ## 验证
 

@@ -1,0 +1,19 @@
+{
+  "session_id": "semantic-phrase-clusters-example",
+  "events": [
+    {
+      "id": "user-1",
+      "role": "user",
+      "factor_channel": "user_input",
+      "message_scope": "direct_user",
+      "text": "把项目拉起来"
+    },
+    {
+      "id": "user-2",
+      "role": "user",
+      "factor_channel": "user_input",
+      "message_scope": "direct_user",
+      "text": "启动 dev server"
+    }
+  ]
+}

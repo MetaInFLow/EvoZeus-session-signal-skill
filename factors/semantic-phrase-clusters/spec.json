@@ -1,0 +1,47 @@
+{
+  "schema_version": "official.factor.v0",
+  "stability": "official",
+  "factor_id": "official.semantic-phrase-clusters",
+  "version": "v0.1.0",
+  "title": "Semantic phrase clusters",
+  "summary": "Groups semantically equivalent direct-user phrases into stable intent clusters.",
+  "title_i18n": {
+    "zh-CN": "语义短句聚类",
+    "en-US": "Semantic phrase clusters"
+  },
+  "summary_i18n": {
+    "zh-CN": "把用户本人表达的同义短句归并为稳定意图簇，并保留变体、计数和事件证据。",
+    "en-US": "Groups semantically equivalent direct-user phrases into stable intent clusters with variants, counts, and evidence."
+  },
+  "compatibility": {
+    "evozeus_protocol": ">=0.1.0"
+  },
+  "governance": {
+    "owner": "evozeus-factor-maintainers"
+  },
+  "input_contract": {
+    "event_model": "SessionEvent[]",
+    "required_fields": ["events[].id", "events[].role", "events[].text"],
+    "accepted_input_kinds": ["session", "project", "scan_record_set"],
+    "target_types": ["session", "project", "scan_record_set"],
+    "record_types": ["session_envelope"],
+    "prior_result_policy": "not_required"
+  },
+  "evidence_contract": {
+    "ref_format": "event:<event-id>",
+    "privacy": "Official factors must use redacted direct-user events and stable evidence refs."
+  },
+  "output_contract": {
+    "statuses": ["matched", "not_matched", "skipped", "error"],
+    "fields": ["tags", "scores", "statistics", "datasets", "presentations", "evidence_refs"],
+    "dataset_semantic_types": ["semantic_phrase_cluster_set"],
+    "presentation_components": ["builtin.table.v1", "builtin.json.v1"]
+  },
+  "test_vectors": [
+    {
+      "name": "run project phrase variants",
+      "input": "factors/semantic-phrase-clusters/session.json",
+      "expected_status": "matched"
+    }
+  ]
+}

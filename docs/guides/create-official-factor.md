@@ -1,6 +1,6 @@
 # 新建 Official Factor 指南
 
-本指南用于在 `evozeus-session-signal-skill` 中新增一个 official factor。这里的 official 当前定位为“当下识别需要被总结成 SKILL 的 sessions 的官方信号方法”：factor 是对聊天记录进行分析的组件，顶层 `SKILL.md` 是利用 factor 结果判断是否值得沉淀成 SKILL、得出结论和确定呈现形式的方法层。
+本指南用于在 `EvoZeus-session-signal-skill` 中新增一个 official factor。这里的 official 当前定位为“当下识别需要被总结成 SKILL 的 sessions 的官方信号方法”：factor 是对聊天记录进行分析的组件，顶层 `SKILL.md` 是利用 factor 结果判断是否值得沉淀成 SKILL、得出结论和确定呈现形式的方法层。
 
 这里的 official 不是业务 pack 的发布入口，也不是最终评分模型。新增 factor 必须说明它如何帮助判断 session 是否值得总结成 SKILL，以及它如何暴露好案例、风险、阻塞、用户不满、重复返工、工具失败、资源使用或关键产出。
 

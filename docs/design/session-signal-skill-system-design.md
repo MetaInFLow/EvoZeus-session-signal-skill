@@ -2,21 +2,21 @@
 
 - 状态：修订版
 - 日期：2026-06-24
-- 范围：`evozeus-session-signal-skill` 当前 repo 的 Session Signal SKILL / official factor tools / review page 方法设计
+- 范围：`EvoZeus-session-signal-skill` 当前 repo 的 Session Signal SKILL / official factor tools / review page 方法设计
 - 依据：当前 `.gitmodules`、`00-global/repo-index.md`、本 repo `README.md` / `SKILL.md`
 
 ## 1. 刚刚检查到的事实
 
-1. 当前 active submodule 只有 4 个：`evozeus`、`evozeus-session-signal-skill`、`evozeus-infra`、`evozeus-web`。
-2. `evozeus-factor-lab` 已从 `.gitmodules` 移除，并在 `repo-index.md` 中标记为 removed from active mega repo submodules。
-3. 本地仍残留 `10-repos/evozeus-factor-lab/` checkout，且它自己的 `SKILL.md` 有未提交改动；这是私有/内部历史实验仓，不应进入当前 active 规划。
-4. `evozeus-community` 已重命名为 `evozeus-web`；旧名字只应作为历史域名或历史决策出现，不应作为当前 repo 名。
+1. 当前 active submodule 只有 4 个：`evozeus`、`EvoZeus-session-signal-skill`、`EvoZeus-infra`、`EvoZeus-web`。
+2. `EvoZeus-factor-lab` 已从 `.gitmodules` 移除，并在 `repo-index.md` 中标记为 removed from active mega repo submodules。
+3. 本地仍残留 `10-repos/EvoZeus-factor-lab/` checkout，且它自己的 `SKILL.md` 有未提交改动；这是私有/内部历史实验仓，不应进入当前 active 规划。
+4. `evozeus-community` 已重命名为 `EvoZeus-web`；旧名字只应作为历史域名或历史决策出现，不应作为当前 repo 名。
 5. 本 repo 的当前定位不是五仓整体系统设计，而是：**识别高价值 AI 协作历史记录的 Session Signal SKILL + official factor tools**。
 6. 当前 `README.md` 已把 `tool-failure-frequency` 定位为 diagnostic，但 `SKILL.md` 仍把它列为 direct gate；这是必须修的口径冲突。
 
 ## 2. 重新定位
 
-`evozeus-session-signal-skill` 不是：
+`EvoZeus-session-signal-skill` 不是：
 
 - EvoZeus 五仓总设计文档。
 - runtime / scanner / ledger 的实现仓。
@@ -40,15 +40,15 @@ Session Signal SKILL
 | Repo | 当前职责 | 与本 repo 的关系 |
 | --- | --- | --- |
 | `evozeus` | public protocol / governance / Case / Candidate / Verdict 语义 | 接收最终人工确认后的 Case、Candidate、SKILL / guardrail / checklist，不承接本 repo 的 factor 算法 |
-| `evozeus-infra` | 本地 scanner / runner / ledger / report | 向本 repo 提供 normalized sessions / factor runner 环境；本 repo 不实现 scanner |
-| `evozeus-session-signal-skill` | Session Signal SKILL + official factor tools + candidate synthesis | 当前设计主体 |
-| `evozeus-web` | public-facing web surface / `/skill` 入口解释 | 只解释入口和路由，不执行判断，不收 raw evidence |
+| `EvoZeus-infra` | 本地 scanner / runner / ledger / report | 向本 repo 提供 normalized sessions / factor runner 环境；本 repo 不实现 scanner |
+| `EvoZeus-session-signal-skill` | Session Signal SKILL + official factor tools + candidate synthesis | 当前设计主体 |
+| `EvoZeus-web` | public-facing web surface / `/skill` 入口解释 | 只解释入口和路由，不执行判断，不收 raw evidence |
 
 Removed / internal：
 
 | Repo | 当前状态 | 规划处理 |
 | --- | --- | --- |
-| `evozeus-factor-lab` | private/internal，已从 active submodule 移除 | 不写入当前实施任务；只可作为历史参考或单独清理议题 |
+| `EvoZeus-factor-lab` | private/internal，已从 active submodule 移除 | 不写入当前实施任务；只可作为历史参考或单独清理议题 |
 
 ## 4. 本 Repo 的核心对象
 
@@ -72,14 +72,14 @@ Removed / internal：
 
 ```mermaid
 C4Context
-  title evozeus-session-signal-skill - 当前定位上下文
+  title EvoZeus-session-signal-skill - 当前定位上下文
 
   Person(reviewer, "Reviewer", "复核 high-value session candidates")
   Person(skillAuthor, "SKILL 作者", "把确认后的经验沉淀为 SKILL / checklist / guardrail")
 
-  System_Ext(runtime, "evozeus-infra", "scanner / runner / ledger / report host")
+  System_Ext(runtime, "EvoZeus-infra", "scanner / runner / ledger / report host")
   System_Ext(mainRepo, "EvoZeus 主 repo", "Case / Candidate / Verdict governance")
-  System(officialRepo, "evozeus-session-signal-skill", "Session Signal SKILL + official factor tools")
+  System(officialRepo, "EvoZeus-session-signal-skill", "Session Signal SKILL + official factor tools")
   System(reviewPage, "High-Quality Session Review Page", "展示 analyzed sessions、候选判断、证据和人工复核状态")
 
   Rel(runtime, officialRepo, "Runs official factors and passes factor results")
@@ -93,12 +93,12 @@ C4Context
 
 ```mermaid
 C4Container
-  title evozeus-session-signal-skill - 容器视图
+  title EvoZeus-session-signal-skill - 容器视图
 
   Person(reviewer, "Reviewer", "人工复核者")
-  System_Ext(runtime, "evozeus-infra", "本地 scanner / runner / ledger")
+  System_Ext(runtime, "EvoZeus-infra", "本地 scanner / runner / ledger")
 
-  System_Boundary(repo, "evozeus-session-signal-skill") {
+  System_Boundary(repo, "EvoZeus-session-signal-skill") {
     Container(skill, "SKILL.md", "Codex Skill", "定义如何使用 factor outputs 判断高价值候选")
     Container(contract, "OfficialFactor Contract", "Python", "定义 factor input/result/presentation/evidence contract")
     Container(factors, "Official Factor Tools", "Python + FACTOR.xml", "单一信号提取器")
@@ -182,5 +182,5 @@ Deprecated：
 2. 为 official factors 增加 lifecycle policy。
 3. 实现 `candidate_synthesis.py`，把页面判断逻辑从 HTML / 临时脚本中拿出来。
 4. 重新生成 review data，让页面显示所有 analyzed sessions、原因和证据。
-5. 从当前规划中移除 `evozeus-factor-lab` active 任务。
-6. 保留对 `evozeus-infra` 的接口要求，但不在本 repo plan 中实现 infra run artifact。
+5. 从当前规划中移除 `EvoZeus-factor-lab` active 任务。
+6. 保留对 `EvoZeus-infra` 的接口要求，但不在本 repo plan 中实现 infra run artifact。

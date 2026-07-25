@@ -1,6 +1,6 @@
 # Session Signal SKILL 当前定位实施计划
 
-> **给 agentic worker：** 本计划只执行 `evozeus-session-signal-skill` 当前 repo 内的 Session Signal SKILL / official factor tools / review page 方法改造。不要把 `evozeus-factor-lab` 当作 active repo，不要在本计划里改 `evozeus-web` 或 `evozeus-infra`。
+> **给 agentic worker：** 本计划只执行 `EvoZeus-session-signal-skill` 当前 repo 内的 Session Signal SKILL / official factor tools / review page 方法改造。不要把 `EvoZeus-factor-lab` 当作 active repo，不要在本计划里改 `EvoZeus-web` 或 `EvoZeus-infra`。
 
 **目标：** 把当前 Session Signal SKILL 的判断逻辑从“页面和临时脚本里混合判断”收敛为可测试的 `factor lifecycle -> candidate synthesis -> review page` 流程。
 
@@ -12,10 +12,10 @@
 
 ## 0. 刚刚检查到的事实
 
-1. 当前 `.gitmodules` 只有 4 个 active submodules：`evozeus`、`evozeus-session-signal-skill`、`evozeus-infra`、`evozeus-web`。
-2. `evozeus-factor-lab` 已从 active mega repo submodules 移除；`repo-index.md` 明确说它是 private/internal 历史实验仓。
-3. 本地仍残留 `10-repos/evozeus-factor-lab/`，且其 `SKILL.md` 有未提交改动；这是单独清理事项，不进入本计划。
-4. `evozeus-community` 已重命名为 `evozeus-web`；当前规划不应再使用 `evozeus-community` 作为 repo 名。
+1. 当前 `.gitmodules` 只有 4 个 active submodules：`evozeus`、`EvoZeus-session-signal-skill`、`EvoZeus-infra`、`EvoZeus-web`。
+2. `EvoZeus-factor-lab` 已从 active mega repo submodules 移除；`repo-index.md` 明确说它是 private/internal 历史实验仓。
+3. 本地仍残留 `10-repos/EvoZeus-factor-lab/`，且其 `SKILL.md` 有未提交改动；这是单独清理事项，不进入本计划。
+4. `evozeus-community` 已重命名为 `EvoZeus-web`；当前规划不应再使用 `evozeus-community` 作为 repo 名。
 5. 当前 design doc 之前错误地写成“五仓整体设计”。新的规划必须回到本 repo 的实际定位：识别高价值 AI 协作历史记录的 Session Signal SKILL + official factor tools。
 6. 当前 README 已把 `tool-failure-frequency` 定位为 diagnostic，但 `SKILL.md` 仍把它列为 direct gate，必须修正。
 
@@ -24,10 +24,10 @@
 | Repo | 当前状态 | 本计划是否修改 |
 | --- | --- | --- |
 | `evozeus` | active submodule，主协议 / governance | 不修改；只作为最终沉淀去向 |
-| `evozeus-session-signal-skill` | active submodule，本计划主体 | 修改 |
-| `evozeus-infra` | active submodule，scanner / runner / ledger / report | 不修改；只定义输入/输出接口要求 |
-| `evozeus-web` | active submodule，web 入口 | 不修改 |
-| `evozeus-factor-lab` | removed from active submodules，private/internal | 不修改；不作为任务对象 |
+| `EvoZeus-session-signal-skill` | active submodule，本计划主体 | 修改 |
+| `EvoZeus-infra` | active submodule，scanner / runner / ledger / report | 不修改；只定义输入/输出接口要求 |
+| `EvoZeus-web` | active submodule，web 入口 | 不修改 |
+| `EvoZeus-factor-lab` | removed from active submodules，private/internal | 不修改；不作为任务对象 |
 
 ## 2. 文件结构
 
@@ -59,7 +59,7 @@
 
 ## Task 1：修正当前文档口径
 
-**Repo：** `/Users/anthonyf/Documents/EvoZeus-cluster/10-repos/evozeus-session-signal-skill`
+**Repo：** `/Users/anthonyf/Documents/EvoZeus-cluster/10-repos/EvoZeus-session-signal-skill`
 
 **文件：**
 - 修改：`SKILL.md`
@@ -100,7 +100,7 @@ rg -n "Direct gates:.*tool-failure" SKILL.md
 预期：
 
 ```text
-不应再把 evozeus-factor-lab 写成 active component
+不应再把 EvoZeus-factor-lab 写成 active component
 不应再把 evozeus-community 写成当前 repo 名
 不应再把 tool-failure-frequency 写成 direct gate
 ```
@@ -154,7 +154,7 @@ def can_drive_candidate(lifecycle: FactorLifecycle) -> bool:
     return lifecycle == FactorLifecycle.ACTIVE
 ```
 
-- [ ] **Step 3：定义当前 7 个 factor 的生命周期**
+- [ ] **Step 3：定义当前 official factor 的生命周期**
 
 在 `FACTOR.xml` / `spec.json` 或 contract quality notes 中同步：
 
@@ -168,6 +168,7 @@ diagnostic:
   - tool-failure-frequency
   - session-resource-usage
   - key-sentence-trends
+  - mbti-personality-profile
 
 deprecated candidate:
   - usage-sentence-cloud
@@ -377,22 +378,22 @@ node scripts/check_high_quality_session_review.mjs
 
 **不执行删除，只更新规划口径。**
 
-- [ ] **Step 1：确认本计划没有把 `evozeus-factor-lab` 当作执行对象**
+- [ ] **Step 1：确认本计划没有把 `EvoZeus-factor-lab` 当作执行对象**
 
 运行：
 
 ```bash
-rg -n "[R]epo：.*/evozeus-factor-lab|[修]改：.*evozeus-factor-lab|[新]增：.*evozeus-factor-lab|[c]d .*/evozeus-factor-lab" docs/superpowers/plans/2026-06-24-session-signal-skill-system.md
+rg -n "[R]epo：.*/EvoZeus-factor-lab|[修]改：.*EvoZeus-factor-lab|[新]增：.*EvoZeus-factor-lab|[c]d .*/EvoZeus-factor-lab" docs/superpowers/plans/2026-06-24-session-signal-skill-system.md
 ```
 
 预期：无命中。
 
 - [ ] **Step 2：单独记录本地残留**
 
-不要在本计划里删除 `10-repos/evozeus-factor-lab/`。如需清理，另起一个 cleanup 任务，先检查它自己的 dirty 状态：
+不要在本计划里删除 `10-repos/EvoZeus-factor-lab/`。如需清理，另起一个 cleanup 任务，先检查它自己的 dirty 状态：
 
 ```bash
-git -C /Users/anthonyf/Documents/EvoZeus-cluster/10-repos/evozeus-factor-lab status --short --branch
+git -C /Users/anthonyf/Documents/EvoZeus-cluster/10-repos/EvoZeus-factor-lab status --short --branch
 ```
 
 当前已知状态：

@@ -22,9 +22,9 @@ def _load_factor_module(slug: str):
 
 
 RepeatedRequestFactor = _load_factor_module("repeated-request").RepeatedRequestFactor
-UsageSentenceCloudFactor = _load_factor_module("usage-sentence-cloud").UsageSentenceCloudFactor
 ToolFailureFrequencyFactor = _load_factor_module("tool-failure-frequency").ToolFailureFrequencyFactor
 KeySentenceTrendsFactor = _load_factor_module("key-sentence-trends").KeySentenceTrendsFactor
+SemanticPhraseClustersFactor = _load_factor_module("semantic-phrase-clusters").SemanticPhraseClustersFactor
 TaskCompletionFactor = _load_factor_module("task-completion").TaskCompletionFactor
 UserInputSentimentFactor = _load_factor_module("user-input-sentiment").UserInputSentimentFactor
 SessionResourceUsageFactor = _load_factor_module("session-resource-usage").SessionResourceUsageFactor
@@ -65,6 +65,8 @@ class OfficialFactorsTest(unittest.TestCase):
         self.assertEqual(result.status, "matched")
         self.assertEqual(payload["scores"]["repeated_request_count"], 1.0)
         self.assertIn({"ref_id": "user-2", "kind": "user_turn"}, result.evidence_refs)
+        self.assertEqual(payload["datasets"][0]["records"][0]["first_input_text"], "review一下这些 factor，看看算法有没有问题")
+        self.assertEqual(payload["datasets"][0]["records"][0]["repeat_input_text"], "再 review 一下这些factor，感觉算法还是不对")
 
     def test_repeated_request_ignores_short_continuations(self) -> None:
         session = {
@@ -81,7 +83,7 @@ class OfficialFactorsTest(unittest.TestCase):
 
         self.assertEqual(result.status, "not_matched")
 
-    def test_repeated_request_handles_long_pasted_request_without_expanding_signature(self) -> None:
+    def test_repeated_request_ignores_consecutive_long_pasted_request(self) -> None:
         long_text = "请 review 这个 factor " + "非常长的背景材料" * 500
         session = {
             "session_id": "long-repeat-request",
@@ -92,10 +94,7 @@ class OfficialFactorsTest(unittest.TestCase):
         }
 
         result = RepeatedRequestFactor().evaluate(session)
-        record = result.as_dict()["datasets"][0]["records"][0]
-
-        self.assertEqual(result.status, "matched")
-        self.assertLessEqual(len(record["request_signature"]), 120)
+        self.assertEqual(result.status, "not_matched")
 
     def test_repeated_request_does_not_treat_follow_up_correction_as_repeat(self) -> None:
         session = {
@@ -126,153 +125,114 @@ class OfficialFactorsTest(unittest.TestCase):
 
         self.assertEqual(result.status, "not_matched")
 
-    def test_usage_sentence_cloud_returns_dataset_and_word_cloud_presentation(self) -> None:
-        session = _load_session("usage-sentence-cloud")
-        result = UsageSentenceCloudFactor().evaluate(session)
-        payload = result.as_dict()
-
-        self.assertEqual(result.status, "matched")
-        self.assertEqual(payload["target_type"], "session")
-        self.assertEqual(payload["datasets"][0]["semantic_type"], "high_frequency_phrase_set")
-        self.assertEqual(payload["datasets"][0]["records"][0]["chat_role"], "user")
-        self.assertEqual(payload["datasets"][0]["records"][0]["display_sentence"], "合理利用 subagent")
-        self.assertEqual(payload["presentations"][0]["component_ref"], "builtin.word_cloud.v1")
-        self.assertEqual(payload["presentations"][0]["bindings"]["word"], "text")
-        self.assertEqual(payload["presentations"][0]["bindings"]["weight"], "value")
-
-    def test_usage_sentence_cloud_segments_phrases_by_chat_role(self) -> None:
+    def test_repeated_request_requires_assistant_response_between_user_turns(self) -> None:
         session = {
-            "session_id": "role-segmented-usage",
+            "session_id": "mirrored-consecutive-user-turns",
             "events": [
-                {"id": "user-1", "role": "user", "factor_channel": "user_input", "text": "检查日志，检查日志"},
-                {"id": "assistant-1", "role": "assistant", "factor_channel": "assistant_result", "text": "运行测试，运行测试"},
-                {"id": "tool-1", "role": "tool", "factor_channel": "tool_result", "text": "pytest failed with exit code 1"},
+                {"id": "user-1", "role": "user", "factor_channel": "user_input", "text": "把项目拉起来"},
+                {"id": "user-2", "role": "user", "factor_channel": "user_input", "text": "tauri 跑起来我看下"},
             ],
         }
 
-        result = UsageSentenceCloudFactor().evaluate(session)
-        records = result.as_dict()["datasets"][0]["records"]
-        by_role = {(record["chat_role"], record["display_sentence"]) for record in records}
+        result = RepeatedRequestFactor().evaluate(session)
 
-        self.assertIn(("user", "检查日志"), by_role)
-        self.assertIn(("assistant", "运行测试"), by_role)
-        self.assertIn(("tool", "pytest failed with exit code 1"), by_role)
+        self.assertEqual(result.status, "not_matched")
 
-    def test_usage_sentence_cloud_extracts_codex_request_short_sentences(self) -> None:
+    def test_repeated_request_keeps_unresolved_intent_across_task_close(self) -> None:
         session = {
-            "session_id": "codex-wrapped-usage-sentences",
+            "session_id": "reask-across-task-close",
             "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "hook会注入哪些过程当前？"},
+                {"id": "a1", "role": "assistant", "factor_channel": "assistant_result", "text": "我解释一下 Hook。"},
+                {"id": "done1", "role": "task_complete", "factor_channel": "assistant_result", "text": "Task complete"},
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "text": "告诉我什么情况下会激活什么hook会做什么"},
+            ],
+        }
+
+        result = RepeatedRequestFactor().evaluate(session)
+        record = result.as_dict()["datasets"][0]["records"][0]
+
+        self.assertEqual((record["first_event_id"], record["repeat_event_id"]), ("u1", "u2"))
+
+    def test_repeated_request_counts_a_distinct_exact_resend_without_assistant_reply(self) -> None:
+        session = {
+            "session_id": "exact-resend",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "source_line": 10, "text": "先帮我把文案部分搞明白"},
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "source_line": 20, "text": "先帮我把文案部分搞明白"},
+            ],
+        }
+
+        result = RepeatedRequestFactor().evaluate(session)
+        record = result.as_dict()["datasets"][0]["records"][0]
+
+        self.assertEqual((record["first_event_id"], record["repeat_event_id"]), ("u1", "u2"))
+
+    def test_repeated_request_does_not_turn_a_recurring_workflow_topic_into_an_unresolved_reask(self) -> None:
+        session = {
+            "session_id": "workflow-topic-not-reask",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "加入 EvoZeus"},
+                {"id": "a1", "role": "assistant", "factor_channel": "assistant_result", "text": "已进入安装流程。"},
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "text": "现在测试安装、注册、开始使用"},
+            ],
+        }
+
+        result = RepeatedRequestFactor().evaluate(session)
+
+        self.assertEqual(result.status, "not_matched")
+
+    def test_repeated_request_treats_a_detailed_new_direction_as_refinement(self) -> None:
+        session = {
+            "session_id": "detailed-refinement-not-reask",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "这个页面没有呈现清楚产品定位。"},
+                {"id": "a1", "role": "assistant", "factor_channel": "assistant_result", "text": "我会重写定位。"},
                 {
-                    "id": "context-1",
+                    "id": "u2",
                     "role": "user",
-                    "text": "# AGENTS.md instructions for /tmp/project\n"
-                    "<INSTRUCTIONS>项目产出文件默认用中文</INSTRUCTIONS>\n"
-                    "<environment_context><cwd>/tmp/project</cwd></environment_context>",
-                },
-                {
-                    "id": "user-1",
-                    "role": "user",
-                    "text": "# Files mentioned by the user:\n\n"
-                    "## codex-clipboard-demo.png: /var/folders/demo/codex-clipboard-demo.png\n\n"
-                    "## My request for Codex:\n"
-                    "改动太大了，排版不要大变化。\n"
-                    "<image name=[Image #1] path=\"/var/folders/demo/codex-clipboard-demo.png\">\n"
-                    "</image>",
-                },
-                {
-                    "id": "user-1-mirror",
-                    "role": "user",
-                    "text": "# Files mentioned by the user:\n\n"
-                    "## codex-clipboard-demo.png: /var/folders/demo/codex-clipboard-demo.png\n\n"
-                    "## My request for Codex:\n"
-                    "改动太大了，排版不要大变化。",
-                },
-                {
-                    "id": "noise-1",
-                    "role": "user",
-                    "text": "<subagent_notification> {\"agent_path\":\"abc\","
-                    "\"status\":{\"completed\":\"README.md\"}} </subagent_notification>",
-                },
-                {"id": "user-2", "role": "user", "text": "好的，继续。"},
-                {"id": "user-3", "role": "user", "text": "继续"},
-                {
-                    "id": "noise-2",
-                    "role": "user",
-                    "text": "README.md\npyproject.toml\nartifacts/current.yml\n.venv/\n"
-                    "https://example.com\ntext\nproject\nindex\n"
-                    "Continue working toward the active thread goal.",
+                    "factor_channel": "user_input",
+                    "text": "还是没体现重点，是在持续使用中从种子进化成成品。你要解释为什么能做到、和其他产品有什么不同。我希望强调协同进化，让每个使用者的纠偏汇总起来。",
                 },
             ],
         }
 
-        result = UsageSentenceCloudFactor().evaluate(session)
-        records = result.as_dict()["datasets"][0]["records"]
-        counts = {record["display_sentence"]: record["count"] for record in records}
+        result = RepeatedRequestFactor().evaluate(session)
 
-        self.assertNotIn("继续", counts)
-        self.assertEqual(counts["改动太大了"], 1)
-        self.assertEqual(counts["排版不要大变化"], 1)
-        self.assertNotIn("README.md", counts)
-        self.assertNotIn("https", counts)
-        self.assertNotIn("agent_path", counts)
-        self.assertNotIn("completed", counts)
-        self.assertNotIn("text", counts)
-        self.assertNotIn("project", counts)
-        self.assertNotIn("index", counts)
-        self.assertNotIn("pyproject.toml", counts)
-        self.assertNotIn("artifacts/current.yml", counts)
-        self.assertNotIn(".venv/", counts)
-        self.assertNotIn("Continue working toward the active thread goal.", counts)
-        self.assertNotIn("AGENTS.md instructions for /tmp/project", counts)
-        self.assertTrue(all("Files mentioned by the user" not in record["display_sentence"] for record in records))
-        self.assertTrue(all("image name=" not in record["display_sentence"] for record in records))
+        self.assertEqual(result.status, "not_matched")
 
-    def test_usage_sentence_cloud_keeps_request_text_from_markdown_link(self) -> None:
+    def test_repeated_request_ignores_image_payload_and_mirrored_user_event(self) -> None:
         session = {
-            "session_id": "codex-markdown-link-request",
+            "session_id": "image-payload-not-repeat",
             "events": [
                 {
-                    "id": "user-1",
+                    "id": "2026-06-01T00:00:00Z#L10",
                     "role": "user",
-                    "text": "[deanpeters/Product-Manager-Skills.git](https://github.com/deanpeters/Product-Manager-Skills.git)安装这个skill",
-                }
+                    "factor_channel": "user_input",
+                    "text": '[{"image_url":"data:image/png;base64,' + "A" * 180 + '"}]',
+                },
+                {
+                    "id": "2026-06-01T00:00:00Z#L11",
+                    "role": "user",
+                    "factor_channel": "user_input",
+                    "text": '[{"image_url":"data:image/png;base64,' + "B" * 180 + '"}]',
+                },
+                {
+                    "id": "2026-06-01T00:00:00Z#L20",
+                    "role": "user",
+                    "factor_channel": "user_input",
+                    "text": "## My request for Codex:\n检查这个页面为什么错位",
+                },
+                {
+                    "id": "2026-06-01T00:00:00Z#L21",
+                    "role": "user",
+                    "factor_channel": "user_input",
+                    "text": "# Files mentioned by the user:\n\n## My request for Codex:\n检查这个页面为什么错位",
+                },
             ],
         }
 
-        result = UsageSentenceCloudFactor().evaluate(session)
-        records = result.as_dict()["datasets"][0]["records"]
-        sentences = {record["display_sentence"] for record in records}
-
-        self.assertEqual(result.status, "matched")
-        self.assertIn("安装这个skill", sentences)
-
-    def test_usage_sentence_cloud_drops_long_segments_before_path_regex(self) -> None:
-        from evozeus_session_signal_skill import nlp
-
-        class GuardedPathPattern:
-            def search(self, value: str):
-                if len(value) > 200:
-                    raise AssertionError("long text reached path/url regex")
-                return None
-
-        original_pattern = nlp.PATH_OR_URL_RE
-        nlp.PATH_OR_URL_RE = GuardedPathPattern()  # type: ignore[assignment]
-        try:
-            session = {
-                "session_id": "long-tool-output",
-                "events": [
-                    {
-                        "id": "tool-1",
-                        "role": "tool",
-                        "factor_channel": "tool_result",
-                        "text": "工具输出 " + ("非常长的日志片段" * 1000),
-                    }
-                ],
-            }
-
-            result = UsageSentenceCloudFactor().evaluate(session)
-        finally:
-            nlp.PATH_OR_URL_RE = original_pattern
+        result = RepeatedRequestFactor().evaluate(session)
 
         self.assertEqual(result.status, "not_matched")
 
@@ -346,7 +306,20 @@ class OfficialFactorsTest(unittest.TestCase):
         records = result.as_dict()["datasets"][0]["records"]
 
         self.assertEqual(result.status, "matched")
-        self.assertEqual(records, [{"tool_name": "exec_command", "count": 1, "evidence_count": 1, "sample_event_ids": ["tool-2"]}])
+        self.assertEqual(
+            records,
+            [
+                {
+                    "tool_name": "exec_command",
+                    "count": 1,
+                    "failure_count": 1,
+                    "recovered_count": 0,
+                    "unrecovered_count": 1,
+                    "evidence_count": 1,
+                    "sample_event_ids": ["tool-2"],
+                }
+            ],
+        )
 
     def test_tool_failure_frequency_detects_codex_function_call_output_exit_code(self) -> None:
         session = {
@@ -379,6 +352,55 @@ class OfficialFactorsTest(unittest.TestCase):
         self.assertEqual(records[0]["count"], 1)
         self.assertIn({"ref_id": "tool-output-1", "kind": "tool_event"}, result.evidence_refs)
 
+    def test_tool_failure_frequency_pairs_call_id_and_marks_recovered_failure(self) -> None:
+        session = {
+            "session_id": "paired-recovered-failure",
+            "events": [
+                {
+                    "id": "call-1",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "tool_name": "exec_command",
+                    "tool_result": {"call_id": "c1", "name": "exec_command"},
+                    "text": "pytest -q",
+                },
+                {
+                    "id": "output-1",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "tool_name": "function_call_output",
+                    "codex_event_type": "function_call_output",
+                    "tool_result": {"call_id": "c1", "exit_code": 1},
+                    "text": "Process exited with code 1",
+                },
+                {
+                    "id": "call-2",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "tool_name": "exec_command",
+                    "tool_result": {"call_id": "c2", "name": "exec_command"},
+                    "text": "pytest -q",
+                },
+                {
+                    "id": "output-2",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "tool_name": "function_call_output",
+                    "codex_event_type": "function_call_output",
+                    "tool_result": {"call_id": "c2", "status": "success", "exit_code": 0},
+                    "text": "Process exited with code 0",
+                },
+            ],
+        }
+
+        result = ToolFailureFrequencyFactor().evaluate(session)
+        record = result.as_dict()["datasets"][0]["records"][0]
+
+        self.assertEqual(record["tool_name"], "exec_command")
+        self.assertEqual(record["failure_count"], 1)
+        self.assertEqual(record["recovered_count"], 1)
+        self.assertEqual(record["unrecovered_count"], 0)
+
     def test_key_sentence_trends_returns_line_and_heatmap_presentations(self) -> None:
         session = _load_session("key-sentence-trends")
         result = KeySentenceTrendsFactor().evaluate(session)
@@ -405,7 +427,7 @@ class OfficialFactorsTest(unittest.TestCase):
         by_role = {(record["chat_role"], record["cluster_label"]) for record in records}
 
         self.assertIn(("user", "检查日志"), by_role)
-        self.assertIn(("assistant", "运行测试"), by_role)
+        self.assertNotIn(("assistant", "运行测试"), by_role)
 
     def test_key_sentence_trends_clusters_repeated_user_requests(self) -> None:
         session = {
@@ -455,6 +477,102 @@ class OfficialFactorsTest(unittest.TestCase):
         self.assertEqual(counts["不要删除数据库"], 2)
         self.assertIn("输出回滚建议", counts)
 
+    def test_key_sentence_trends_distinguishes_questions_capability_gaps_and_constraints(self) -> None:
+        session = {
+            "session_id": "key-sentence-negation-boundaries",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "能不能用动画"},
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "text": "这个 skill 不能引导用户主动注册并推进下一步"},
+                {"id": "u3", "role": "user", "factor_channel": "user_input", "text": "然后无法应用到 skill 开发的就剔除"},
+            ],
+        }
+
+        result = KeySentenceTrendsFactor().evaluate(session)
+        records = {(record["cluster_label"], record["relation_type"]) for record in result.as_dict()["datasets"][0]["records"]}
+
+        self.assertIn(("能不能用动画", "action_request"), records)
+        self.assertIn(("引导用户主动注册并推进下一步", "action_request"), records)
+        self.assertIn(("无法应用到 skill 开发的就剔除", "negative_constraint"), records)
+
+    def test_key_sentence_trends_keeps_natural_request_around_a_url(self) -> None:
+        session = {
+            "session_id": "key-sentence-url-request",
+            "events": [
+                {
+                    "id": "u1",
+                    "role": "user",
+                    "factor_channel": "user_input",
+                    "text": "https://example.com/hooks 这个是 hook 实现，看看现在 wrapper 是怎么增加 hook 机制的",
+                }
+            ],
+        }
+
+        result = KeySentenceTrendsFactor().evaluate(session)
+        records = {(record["cluster_label"], record["relation_type"]) for record in result.as_dict()["datasets"][0]["records"]}
+
+        self.assertIn(("看看现在 wrapper 是怎么增加 hook 机制的", "action_request"), records)
+
+    def test_semantic_phrase_clusters_groups_run_project_variants_and_excludes_report(self) -> None:
+        session = {
+            "session_id": "semantic-run-project",
+            "events": [
+                {"id": "user-1", "role": "user", "factor_channel": "user_input", "text": "把项目拉起来"},
+                {"id": "user-2", "role": "user", "factor_channel": "user_input", "text": "tauri 跑起来我看下"},
+                {"id": "user-3", "role": "user", "factor_channel": "user_input", "text": "启动 dev server"},
+                {"id": "user-4", "role": "user", "factor_channel": "user_input", "text": "跑一下这个项目"},
+                {"id": "user-5", "role": "user", "factor_channel": "user_input", "text": "把报告拉起来看下"},
+                {"id": "user-6", "role": "user", "factor_channel": "user_input", "text": "我现在要开项目启动会"},
+                {"id": "user-7", "role": "user", "factor_channel": "user_input", "text": "可以直接在应用内实时预览运行效果"},
+                {"id": "user-8", "role": "user", "factor_channel": "user_input", "text": "现在两个 app 都运行起来了"},
+                {"id": "user-9", "role": "user", "factor_channel": "user_input", "text": "写一下如何启动项目的指南"},
+            ],
+        }
+
+        result = SemanticPhraseClustersFactor().evaluate(session)
+        records = result.as_dict()["datasets"][0]["records"]
+
+        self.assertEqual(result.status, "matched")
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["cluster_id"], "intent.run_project")
+        self.assertEqual(records[0]["turn_count"], 4)
+        self.assertNotIn("把报告拉起来看下", records[0]["variants"])
+        self.assertNotIn("我现在要开项目启动会", records[0]["variants"])
+        self.assertNotIn("可以直接在应用内实时预览运行效果", records[0]["variants"])
+
+    def test_semantic_phrase_clusters_groups_factor_review_rephrases(self) -> None:
+        session = {
+            "session_id": "semantic-review-factors",
+            "events": [
+                {"id": "user-1", "role": "user", "factor_channel": "user_input", "text": "review一下这些 factor，看看算法有没有问题"},
+                {"id": "user-2", "role": "user", "factor_channel": "user_input", "text": "再检查一下这些 factor，算法感觉还是不对"},
+            ],
+        }
+
+        result = SemanticPhraseClustersFactor().evaluate(session)
+        record = result.as_dict()["datasets"][0]["records"][0]
+
+        self.assertEqual(record["cluster_id"], "intent.review_factors")
+        self.assertEqual(record["turn_count"], 2)
+
+    def test_semantic_phrase_clusters_groups_product_feedback_and_output_preferences(self) -> None:
+        session = {
+            "session_id": "semantic-product-feedback",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "这个页面没有呈现清楚我们的一句话定位、功能"},
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "text": "还是都看不懂，都不像在说人话"},
+                {"id": "u3", "role": "user", "factor_channel": "user_input", "text": "这个文档不要那么多背景，我只要结果"},
+                {"id": "u4", "role": "user", "factor_channel": "user_input", "text": "不要一大段文字，用词要直接"},
+            ],
+        }
+
+        result = SemanticPhraseClustersFactor().evaluate(session)
+        records = {record["cluster_id"]: record for record in result.as_dict()["datasets"][0]["records"]}
+
+        self.assertEqual(records["intent.clarify_positioning"]["turn_count"], 2)
+        self.assertEqual(records["intent.clarify_positioning"]["label"], "讲清楚产品定位")
+        self.assertEqual(records["intent.concise_supplier_output"]["turn_count"], 2)
+        self.assertIn("不要那么多背景，我只要结果", records["intent.concise_supplier_output"]["variants"])
+
     def test_task_completion_returns_verdict_dataset(self) -> None:
         session = _load_session("task-completion")
         result = TaskCompletionFactor().evaluate(session)
@@ -495,6 +613,123 @@ class OfficialFactorsTest(unittest.TestCase):
 
         self.assertEqual(result.status, "matched")
         self.assertEqual(result.as_dict()["statistics"]["verdict"], "completed")
+
+    def test_task_completion_prefers_runtime_close_over_assistant_claim(self) -> None:
+        session = {
+            "session_id": "claimed-then-closed",
+            "events": [
+                {"id": "assistant-1", "role": "assistant", "text": "已完成文档修改。"},
+                {"id": "closed-1", "role": "task_complete", "text": "Task complete"},
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+
+        self.assertEqual(result.as_dict()["statistics"]["verification"], "runtime_closed")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "closed-1", "kind": "task_complete"}])
+
+    def test_task_completion_only_uses_evidence_from_the_last_user_task(self) -> None:
+        session = {
+            "session_id": "last-user-task-epoch",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "修复测试"},
+                {
+                    "id": "t1",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "text": "3 passed",
+                    "tool_result": {"status": "success"},
+                },
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "text": "再解释一下设计意图"},
+                {"id": "a2", "role": "assistant", "factor_channel": "assistant_result", "text": "解释已整理完成。"},
+                {"id": "done2", "role": "task_complete", "factor_channel": "assistant_result", "text": "Task complete"},
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+
+        self.assertEqual(result.as_dict()["statistics"]["verification"], "runtime_closed")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "done2", "kind": "task_complete"}])
+
+    def test_task_completion_accepts_release_view_as_structured_verification(self) -> None:
+        session = {
+            "session_id": "release-view-verification",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "发布 release"},
+                {
+                    "id": "call1",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "text": '{"cmd":"gh release view --json tagName,url"}',
+                    "tool_result": {"call_id": "c1"},
+                },
+                {
+                    "id": "result1",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "text": "Process exited with code 0\n{\"tagName\":\"v1.0.0\"}",
+                    "tool_result": {"call_id": "c1", "exit_code": 0},
+                },
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+
+        self.assertEqual(result.as_dict()["statistics"]["verification"], "verified")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "result1", "kind": "tool"}])
+
+    def test_task_completion_rejects_release_view_with_masked_command_error(self) -> None:
+        session = {
+            "session_id": "masked-release-view-error",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "发布 release"},
+                {
+                    "id": "call1",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "text": '{"cmd":"gh release view --json isLatest || true"}',
+                    "tool_result": {"call_id": "c1"},
+                },
+                {
+                    "id": "result1",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "text": "Process exited with code 0\nUnknown JSON field: isLatest",
+                    "tool_result": {"call_id": "c1", "exit_code": 0},
+                },
+                {"id": "done1", "role": "task_complete", "text": "Task complete"},
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+
+        self.assertEqual(result.as_dict()["statistics"]["verification"], "runtime_closed")
+
+    def test_task_completion_does_not_verify_from_wrapper_call_text(self) -> None:
+        session = {
+            "session_id": "wrapper-call-is-not-proof",
+            "events": [
+                {
+                    "id": "call-1",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "codex_event_type": "custom_tool_call",
+                    "text": 'tools.exec_command({"cmd":"git diff --check"})',
+                    "tool_result": {"status": "completed", "call_id": "c1"},
+                },
+                {
+                    "id": "closed-1",
+                    "role": "task_complete",
+                    "factor_channel": "assistant_result",
+                    "text": "Task complete",
+                },
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+
+        self.assertEqual(result.as_dict()["statistics"]["verification"], "runtime_closed")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "closed-1", "kind": "task_complete"}])
 
     def test_task_completion_uses_nlp_blocked_signal_from_final_assistant(self) -> None:
         session = {
@@ -537,6 +772,93 @@ class OfficialFactorsTest(unittest.TestCase):
         self.assertEqual(payload["statistics"]["verdict"], "unknown")
         self.assertEqual(payload["scores"]["task_completion_score"], 0.0)
 
+    def test_task_completion_treats_final_created_summary_as_completed(self) -> None:
+        session = {
+            "session_id": "guide-created-completed",
+            "events": [
+                {
+                    "id": "assistant-1",
+                    "role": "assistant",
+                    "factor_channel": "assistant_result",
+                    "text": "Guide Created - Added `AGENTS.md` with a contributor guide.",
+                }
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+        payload = result.as_dict()
+
+        self.assertEqual(result.status, "matched")
+        self.assertEqual(payload["statistics"]["verdict"], "completed")
+
+    def test_task_completion_does_not_treat_instructional_advice_as_completed(self) -> None:
+        session = {
+            "session_id": "instructional-advice-unknown",
+            "events": [
+                {
+                    "id": "assistant-1",
+                    "role": "assistant",
+                    "factor_channel": "assistant_result",
+                    "text": "两台设备已配对，无需再次 pair。直接启动两个模拟器，然后查看数据。",
+                }
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+        payload = result.as_dict()
+
+        self.assertEqual(result.status, "not_matched")
+        self.assertEqual(payload["statistics"]["verdict"], "unknown")
+
+    def test_task_completion_uses_successful_test_output_as_verified_completion(self) -> None:
+        session = {
+            "session_id": "verified-test-completion",
+            "events": [
+                {
+                    "id": "tool-call",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "tool_name": "exec_command",
+                    "tool_result": {"call_id": "call-1", "name": "exec_command"},
+                    "text": "pytest -q",
+                },
+                {
+                    "id": "tool-output",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "tool_name": "function_call_output",
+                    "tool_result": {"call_id": "call-1", "status": "success", "exit_code": 0},
+                    "text": "12 passed",
+                },
+                {"id": "assistant-final", "role": "assistant", "factor_channel": "assistant_result", "text": "修复完成，测试通过。"},
+                {"id": "task-complete", "role": "task_complete", "factor_channel": "assistant_result", "text": "Task complete"},
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+        payload = result.as_dict()
+
+        self.assertEqual(payload["statistics"]["verdict"], "completed")
+        self.assertEqual(payload["statistics"]["verification"], "verified")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "tool-output", "kind": "tool"}])
+
+    def test_task_completion_user_rejection_overrides_assistant_completion_claim(self) -> None:
+        session = {
+            "session_id": "user-rejected-completion",
+            "events": [
+                {"id": "assistant-1", "role": "assistant", "factor_channel": "assistant_result", "text": "已经改好了。"},
+                {"id": "user-1", "role": "user", "factor_channel": "user_input", "text": "不对，改动太大了。"},
+            ],
+        }
+
+        result = TaskCompletionFactor().evaluate(session)
+        payload = result.as_dict()
+
+        self.assertEqual(result.status, "not_matched")
+        self.assertEqual(payload["statistics"]["verdict"], "not_completed")
+        self.assertEqual(payload["statistics"]["verification"], "user_rejected")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "user-1", "kind": "user"}])
+
     def test_user_input_sentiment_returns_distribution_and_turn_rows(self) -> None:
         session = _load_session("user-input-sentiment")
         result = UserInputSentimentFactor().evaluate(session)
@@ -568,6 +890,8 @@ class OfficialFactorsTest(unittest.TestCase):
         self.assertEqual(payload["statistics"]["user_turn_count"], 1)
         self.assertEqual(payload["statistics"]["dominant_sentiment_kind"], "correction_request")
         self.assertEqual(payload["datasets"][0]["records"][0]["sentiment_kind"], "correction_request")
+        self.assertEqual(payload["datasets"][0]["records"][0]["input_text"], "不对，改动太大了，排版不要大变化")
+        self.assertEqual(payload["datasets"][0]["records"][0]["matched_excerpt"], "不对，改动太大了，排版不要大变化")
 
     def test_user_input_sentiment_handles_long_pasted_request(self) -> None:
         session = {
@@ -586,6 +910,85 @@ class OfficialFactorsTest(unittest.TestCase):
 
         self.assertEqual(result.status, "matched")
         self.assertEqual(result.as_dict()["datasets"][0]["records"][0]["sentiment_kind"], "problem_report")
+
+    def test_user_input_sentiment_keeps_plain_tasks_neutral(self) -> None:
+        session = {
+            "session_id": "plain-task-neutral",
+            "events": [
+                {"id": "user-1", "role": "user", "factor_channel": "user_input", "text": "上传到当前分支现在的代码"},
+                {"id": "user-2", "role": "user", "factor_channel": "user_input", "text": "Generate a file named AGENTS.md that serves as a contributor guide"},
+            ],
+        }
+
+        result = UserInputSentimentFactor().evaluate(session)
+        records = result.as_dict()["datasets"][0]["records"]
+
+        self.assertEqual(result.status, "not_matched")
+        self.assertEqual({record["sentiment_kind"] for record in records}, {"neutral_request"})
+        self.assertEqual(result.evidence_refs, [])
+
+    def test_user_input_sentiment_treats_negated_failure_as_correction(self) -> None:
+        session = {
+            "session_id": "negated-failure-correction",
+            "events": [
+                {
+                    "id": "user-1",
+                    "role": "user",
+                    "factor_channel": "user_input",
+                    "text": "但实际上 fastbuild 没有失败，已经成功跑完了。",
+                }
+            ],
+        }
+
+        result = UserInputSentimentFactor().evaluate(session)
+        record = result.as_dict()["datasets"][0]["records"][0]
+
+        self.assertEqual(result.status, "matched")
+        self.assertEqual(record["sentiment_kind"], "correction_request")
+        self.assertEqual(result.evidence_refs, [{"ref_id": "user-1", "kind": "user_turn"}])
+
+    def test_user_input_sentiment_does_not_match_bug_inside_debugging(self) -> None:
+        session = {
+            "session_id": "debugging-is-not-bug-report",
+            "events": [
+                {
+                    "id": "user-1",
+                    "role": "user",
+                    "factor_channel": "user_input",
+                    "text": "请使用 systematic-debugging 排查，并调用 node_repl MCP",
+                }
+            ],
+        }
+
+        result = UserInputSentimentFactor().evaluate(session)
+
+        self.assertEqual(result.status, "not_matched")
+        self.assertEqual(result.evidence_refs, [])
+
+    def test_user_input_sentiment_separates_chinese_corrections_from_pure_dissatisfaction(self) -> None:
+        session = {
+            "session_id": "chinese-feedback-boundaries",
+            "events": [
+                {"id": "u1", "role": "user", "factor_channel": "user_input", "text": "还是没体现重点，你要讲清楚差异。"},
+                {"id": "u2", "role": "user", "factor_channel": "user_input", "text": "太长了，细节应该放到 Skill 里。"},
+                {"id": "u3", "role": "user", "factor_channel": "user_input", "text": "不要那么多背景，我只要结果。"},
+                {"id": "u4", "role": "user", "factor_channel": "user_input", "text": "这段不像真人写的，AI 味很重。"},
+                {"id": "u5", "role": "user", "factor_channel": "user_input", "text": "还是都看不懂，也不像在说人话。"},
+                {"id": "u6", "role": "user", "factor_channel": "user_input", "text": "方向还是很蠢很普通。"},
+            ],
+        }
+
+        result = UserInputSentimentFactor().evaluate(session)
+        records = result.as_dict()["datasets"][0]["records"]
+
+        assert [(record["event_id"], record["sentiment_kind"]) for record in records] == [
+            ("u1", "correction_request"),
+            ("u2", "correction_request"),
+            ("u3", "correction_request"),
+            ("u4", "correction_request"),
+            ("u5", "dissatisfaction"),
+            ("u6", "dissatisfaction"),
+        ]
 
     def test_session_resource_usage_extracts_tools_skills_and_mcp(self) -> None:
         session = _load_session("session-resource-usage")
@@ -643,6 +1046,44 @@ class OfficialFactorsTest(unittest.TestCase):
         self.assertNotIn("skill:PWCLI", resource_keys)
         self.assertNotIn("skill:SkillName", resource_keys)
         self.assertIn("HOME", diagnostics)
+
+    def test_session_resource_usage_counts_tool_call_not_wrapper_output(self) -> None:
+        session = {
+            "session_id": "dedupe-tool-call-output",
+            "events": [
+                {
+                    "id": "assistant-1",
+                    "role": "assistant",
+                    "factor_channel": "assistant_result",
+                    "skill_name": "systematic-debugging",
+                    "text": "我会使用 $systematic-debugging 和 mcp__node_repl__js。",
+                },
+                {
+                    "id": "call-1",
+                    "role": "tool",
+                    "factor_channel": "tool_usage",
+                    "tool_name": "mcp__node_repl__js",
+                    "tool_result": {"call_id": "c1", "name": "mcp__node_repl__js"},
+                    "text": "{}",
+                },
+                {
+                    "id": "output-1",
+                    "role": "tool",
+                    "factor_channel": "tool_result",
+                    "tool_name": "function_call_output",
+                    "tool_result": {"call_id": "c1", "status": "success"},
+                    "text": "ok",
+                },
+            ],
+        }
+
+        result = SessionResourceUsageFactor().evaluate(session)
+        records = result.as_dict()["datasets"][0]["records"]
+        counts = {(record["resource_type"], record["resource_name"]): record["count"] for record in records}
+
+        self.assertEqual(counts[("skill", "systematic-debugging")], 1)
+        self.assertEqual(counts[("tool", "mcp__node_repl__js")], 1)
+        self.assertEqual(counts[("mcp", "node_repl")], 1)
 
 
 def _load_session(slug: str) -> dict:

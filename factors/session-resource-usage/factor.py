@@ -230,14 +230,14 @@ def _resources_for_event_with_diagnostics(
         resources.add(("connector", connector_name))
 
     text = str(event.get("text", ""))[:2000]
-    for skill_name in SKILL_PATTERN.findall(text):
-        if _is_valid_skill_name(skill_name, explicit=False):
-            resources.add(("skill", skill_name))
-        else:
-            diagnostics.append((skill_name, "skill_noise"))
-    for mcp_server, mcp_tool in MCP_TOOL_PATTERN.findall(text):
-        resources.add(("mcp", mcp_server))
-        resources.add(("tool", f"mcp__{mcp_server}__{mcp_tool}"))
+    if event_factor_channel(event) == "assistant_result":
+        for skill_name in SKILL_PATTERN.findall(text):
+            if _is_valid_skill_name(skill_name, explicit=False):
+                resources.add(("skill", skill_name))
+            else:
+                diagnostics.append((skill_name, "skill_noise"))
+        for mcp_server, mcp_tool in MCP_TOOL_PATTERN.findall(text):
+            diagnostics.append((f"mcp__{mcp_server}__{mcp_tool}", "mentioned_mcp_tool"))
 
     return sorted(resources), diagnostics
 
