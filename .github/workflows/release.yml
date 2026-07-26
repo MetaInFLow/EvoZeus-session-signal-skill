@@ -1,0 +1,25 @@
+name: Release archive
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build immutable source archive
+        run: |
+          test "$(git describe --tags --exact-match)" = "${GITHUB_REF_NAME}"
+          git archive --format=tar.gz --prefix="EvoZeus-session-signal-skill-${GITHUB_REF_NAME}/" -o "evozeus-session-signal-skill-${GITHUB_REF_NAME}.tar.gz" "${GITHUB_REF_NAME}"
+          shasum -a 256 "evozeus-session-signal-skill-${GITHUB_REF_NAME}.tar.gz" > "evozeus-session-signal-skill-${GITHUB_REF_NAME}.tar.gz.sha256"
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" "evozeus-session-signal-skill-${GITHUB_REF_NAME}.tar.gz" "evozeus-session-signal-skill-${GITHUB_REF_NAME}.tar.gz.sha256" --clobber
