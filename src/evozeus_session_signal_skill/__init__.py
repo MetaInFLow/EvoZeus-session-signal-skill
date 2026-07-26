@@ -8,6 +8,8 @@ from .factor import (
     validate_official_factor_spec,
 )
 
+__version__ = "0.1.0"
+
 __all__ = [
     "OfficialFactor",
     "OfficialFactorInput",
@@ -16,4 +18,5 @@ __all__ = [
     "OfficialResultPresentation",
     "assert_valid_official_factor_spec",
     "validate_official_factor_spec",
+    "__version__",
 ]

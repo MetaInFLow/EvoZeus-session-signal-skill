@@ -2,6 +2,8 @@
 
 `EvoZeus-session-signal-skill` 当前定位为：**识别高价值 AI 协作历史记录的 Session Signal SKILL + official factor tools**。
 
+当前正式版本为 `v0.1.0`，由 EvoZeus 产品清单按 exact tag、commit 和 checksum 安装；唯一 UAT 使用同一 Repo 的 `uat/current` 固定 Commit，不单独创建第二套测试版本名称。
+
 这个名字强调主角是 `SKILL.md` 方法层：它负责把聊天记录里的 session signals 合成为可复核的高价值候选；`factors/<slug>/` 是这套 SKILL 可以调用、解释和校准的 signal tools。这里的 `official` 只表示 factor contract / tool 稳定，不表示“所有可安装官方因子包的仓库”。它用于在当前 Codex / agent session 中找出需要被总结、沉淀或复盘的 sessions：大多数正常完成、低信息量、一次性任务应跳过；少数好案例、失败链路、用户纠偏、重复返工、工具卡点和异常资源使用才进入沉淀队列。
 
 顶层 [SKILL.md](SKILL.md) 是这套方法的入口：factor tool 负责分析聊天记录并产出结构化信号，`SKILL.md` 负责说明如何利用这些 tool 结果判断是否值得沉淀、建议沉淀成什么类型、证据是什么、下一步怎么写。
