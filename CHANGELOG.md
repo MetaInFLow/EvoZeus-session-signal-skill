@@ -29,6 +29,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Added explicit fix-request tails and standalone qualified exception-line filtering.
 - Made ordinary commas first-class evidence-scope boundaries and recognized bracketed log levels.
 - Added modifier-qualified English miss objects, colon question prefixes, and timestamp-plus-level log headers.
+- Preserved sentence-level choice-question scope, tightened Java stack frames, and added common answer subjects.
 
 ## [v0.1.0] - 2026-07-26
 

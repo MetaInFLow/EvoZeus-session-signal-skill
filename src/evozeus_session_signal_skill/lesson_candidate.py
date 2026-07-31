@@ -27,7 +27,9 @@ _DIRECT_CORRECTION_PATTERNS = tuple(
         r"(?:我(?:很)?不满意|不符合(?:我的)?预期|你.{0,12}(?:(?:没有|没)(?:发现|识别|捕捉到)|漏了|漏掉|遗漏|漏检|误判|搞错))",
         r"(?:(?:我|我们)(?:刚刚|刚才|已经)?(?:发现了|遇到了)|(?:刚刚|刚才|已经)(?:发现了|遇到了)|这里有|这次(?:出现了|发生了)).{0,12}(?:bug|缺陷)",
         r"(?:无法|不能).{0,16}(?:自动|正常)(?:捕捉|记录|运行|识别|更新|升级)",
-        r"\b(?:this|that|the result|your answer)\s+(?:is|was)\s+(?:wrong|incorrect)\b",
+        r"(?:答案|回答)(?:是)?(?:不对|错了|有误)",
+        r"\b(?:this|that|the result|(?:the|this|your) answer)\s+"
+        r"(?:is|was)\s+(?:wrong|incorrect)\b",
         r"\bthis\s+(?:should|must)\s+be\s+(?:corrected|fixed)\b",
         r"\bi(?:'m| am) not satisfied\b",
         r"\byou missed\s+(?:a|the)?\s*(?:[a-z0-9_-]+\s+){0,4}"
@@ -44,6 +46,10 @@ _DURABLE_RULE_PATTERNS = tuple(
 _EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
 _QUESTION_END_PATTERN = re.compile(r"(?:[?？]|[吗么呢][\"'”’）)]*)\s*$")
 _QUESTION_PREFIX_BOUNDARY_PATTERN = re.compile(r"[:：]")
+_CHOICE_QUESTION_PATTERN = re.compile(
+    r"(?:还是|\bor\b).*[?？][\"'”’）)]*\s*$",
+    re.IGNORECASE,
+)
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FENCE_OPEN_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[^\r\n]*$")
 _FENCE_CLOSE_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[ \t]*$")
@@ -53,10 +59,10 @@ _HYPOTHETICAL_CUE_PATTERN = re.compile(
 )
 _BASE_CLAUSE_BOUNDARY_PATTERN = re.compile(
     r"(?<=[。！？!?；;])[^\S\r\n]*|"
-    r"[,，][ \t]*|"
     r"(?:[,，][ \t]*)?(?=(?:但(?:是)?|不过|然而|可是))|"
     r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)|\r?\n+"
 )
+_COMMA_CLAUSE_BOUNDARY_PATTERN = re.compile(r"[,，][ \t]*")
 _ENGLISH_PERIOD_BOUNDARY_PATTERN = re.compile(
     r"\.[ \t]+(?=(?:[A-Z\u3400-\u9fff]|"
     r"(?i:your answer|this|that|the result|i(?:'m| am)|you missed)\b))"
@@ -84,7 +90,7 @@ _LOG_LINE_PATTERN = re.compile(
     rf"^\s*(?:{_LOG_TIMESTAMP_TEXT}[ \t]+(?:\[{_LOG_LEVEL_TEXT}\][ \t]*)?|"
     rf"\[{_LOG_LEVEL_TEXT}\][ \t]*|"
     rf"{_LOG_LEVEL_TEXT}\b|"
-    r"Traceback\b|File \"|Exception\b|at\s+\S+)",
+    r"Traceback\b|File \"|Exception\b|at\s+[\w.$<>]+\([^()\r\n]*\))",
     re.IGNORECASE,
 )
 _PYTHON_TRACEBACK_START_PATTERN = re.compile(r"^\s*Traceback\b", re.IGNORECASE)
@@ -120,15 +126,21 @@ def _without_fenced_blocks(text: str) -> str:
 
 def _split_clauses(text: str) -> list[str]:
     clauses: list[str] = []
-    for base_clause in _BASE_CLAUSE_BOUNDARY_PATTERN.split(text):
-        cursor = 0
-        for boundary in _ENGLISH_PERIOD_BOUNDARY_PATTERN.finditer(base_clause):
-            preceding = base_clause[: boundary.start() + 1].rstrip().casefold()
-            if preceding.endswith(_ENGLISH_ABBREVIATIONS):
-                continue
-            clauses.append(base_clause[cursor : boundary.start() + 1])
-            cursor = boundary.end()
-        clauses.append(base_clause[cursor:])
+    for sentence_clause in _BASE_CLAUSE_BOUNDARY_PATTERN.split(text):
+        comma_clauses = (
+            [sentence_clause]
+            if _CHOICE_QUESTION_PATTERN.search(sentence_clause)
+            else _COMMA_CLAUSE_BOUNDARY_PATTERN.split(sentence_clause)
+        )
+        for base_clause in comma_clauses:
+            cursor = 0
+            for boundary in _ENGLISH_PERIOD_BOUNDARY_PATTERN.finditer(base_clause):
+                preceding = base_clause[: boundary.start() + 1].rstrip().casefold()
+                if preceding.endswith(_ENGLISH_ABBREVIATIONS):
+                    continue
+                clauses.append(base_clause[cursor : boundary.start() + 1])
+                cursor = boundary.end()
+            clauses.append(base_clause[cursor:])
     return clauses
 
 

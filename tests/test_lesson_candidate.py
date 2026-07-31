@@ -43,7 +43,11 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "以后每次提交前都必须跑测试，是否可以？",
         "以后每次都必须跑测试，可以吗？",
         "你引用的文件有误，请更正。",
+        "答案不对。",
+        "回答不对。",
         "Your answer is wrong; you missed the rollback requirement.",
+        "The answer is wrong.",
+        "This answer is wrong.",
         "You missed the rollback requirement.",
         "Your answer is wrong, can you fix it?",
         "Your answer is wrong, why did this happen?",
@@ -75,6 +79,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "AssertionError: quoted failure\nYour answer is wrong.",
         "[ERROR] quoted failure\nYour answer is wrong.",
         "[2026-07-31 12:00:00] [ERROR] quoted failure\nYour answer is wrong.",
+        "At this point, your answer is wrong.",
     ],
 )
 def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> None:
@@ -104,6 +109,8 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "这是漏检吗？",
         "This should be fixed?",
         "你漏检了这个要求吗，能补上吗？",
+        "是你漏检了回滚要求，还是我理解错了？",
+        "Your answer is wrong, or am I misunderstanding it?",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
@@ -140,6 +147,7 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "ERROR your answer is wrong\n请分析这段日志。",
         "客户说这个结果错了，请帮我归纳客户原话。",
         "Someone said your answer is wrong; summarize their feedback.",
+        "Someone said the answer is wrong; summarize their feedback.",
         "Someone said you missed the rollback requirement; summarize their feedback.",
         "Someone said your answer is wrong. Please summarize that feedback.",
         "Someone said e.g. your answer is wrong; summarize the quoted example.",
@@ -159,6 +167,7 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "AssertionError: your answer is wrong\n请分析这条异常日志。",
         "[ERROR] your answer is wrong\n请分析这条日志。",
         "[2026-07-31 12:00:00] [ERROR] your answer is wrong\n请分析这条日志。",
+        "at com.example.Handler.run(Handler.java:42)\n请分析这条堆栈。",
     ],
 )
 def test_quoted_code_log_and_attributed_corrections_do_not_trigger(prompt: str) -> None:
