@@ -54,14 +54,15 @@ _INLINE_QUOTE_PATTERNS = tuple(
     re.compile(pattern, re.DOTALL)
     for pattern in (
         r'"[^"\n]*"',
-        r"'[^'\n]*'",
+        r"(?<![\w])'[^'\n]*'(?![\w])",
         r"“[^”\n]*”",
         r"‘[^’\n]*’",
         r"`[^`\n]*`",
     )
 )
 _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
-    r"(?:他说|她说|用户说|客户说|对方说|别人说|转述|引用|日志.{0,8}(?:写|显示)|"
+    r"(?:他说|她说|用户说|客户说|对方说|别人说|转述|"
+    r"引用(?:(?:内容|原文)?如下|内容|原文)[ \t]*[：:,，]|日志.{0,8}(?:写|显示)|"
     r"\b(?:he|she|they|the user|the customer|someone)\s+(?:said|wrote|reported)\b)",
     re.IGNORECASE,
 )
@@ -106,7 +107,8 @@ def is_lesson_candidate(prompt: str) -> bool:
         if ambiguous:
             explicit_prefix = clause[: ambiguous.start()].rstrip(" ，,：:")
             if explicit_prefix and any(
-                pattern.search(explicit_prefix) for pattern in _DIRECT_CORRECTION_PATTERNS
+                pattern.search(explicit_prefix)
+                for pattern in (*_DIRECT_CORRECTION_PATTERNS, *_DURABLE_RULE_PATTERNS)
             ):
                 return True
             continue

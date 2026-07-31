@@ -35,7 +35,10 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "请看上下文\n不对",
         "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
         "以后每次提交前都必须运行完整回归并检查 diff。",
+        "以后每次提交前都必须跑测试，是否可以？",
+        "你引用的文件有误，请更正。",
         "Your answer is wrong; you missed the rollback requirement.",
+        "I'm not satisfied; you didn't follow the requirement.",
         "From now on, always check the release boundary before tagging.",
     ],
 )
@@ -64,7 +67,9 @@ def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
     "prompt",
     [
         '请分析这句话："your answer is wrong"。',
+        "Please analyze 'your answer is wrong' as wording.",
         "引用如下：\n> 这个结果错了，请修改。\n请分析语气。",
+        "引用如下：这个结果错了，请分析语气。",
         "```text\nyour answer is wrong\n```\n请总结代码块。",
         "ERROR your answer is wrong\n请分析这段日志。",
         "客户说这个结果错了，请帮我归纳客户原话。",

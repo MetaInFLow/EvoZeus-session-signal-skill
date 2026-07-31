@@ -13,6 +13,11 @@ The component attachment declares the intended next component version `v0.1.1`; 
 
 - The companion performs no persistence or network access and never returns raw prompts, local paths or signal identifiers.
 
+### Fixed
+
+- Preserved English contractions and direct corrections about quoted files during prose de-noising.
+- Preserved a durable rule that is followed by a confirmation question in the same clause.
+
 ## [v0.1.0] - 2026-07-26
 
 ### Added
