@@ -47,8 +47,10 @@ _CHINESE_DURABLE_ACTION_TEXT = (
     r"自动(?:检查|捕捉|记录|识别|更新))"
 )
 _ENGLISH_DURABLE_SCOPE_TEXT = r"(?:from now on|every time|always|for all users)"
-_ENGLISH_DURABLE_ACTION_TEXT = (
-    r"(?:must|remember|check|hide|show|ask|record|run|execute|never|do not|don't)"
+_ENGLISH_DURABLE_IMPERATIVE_TEXT = r"(?:remember|check|hide|show|ask|record|run|execute)"
+_ENGLISH_DURABLE_MODAL_TEXT = (
+    r"(?:must|should|needs?[ \t]+to|has[ \t]+to|have[ \t]+to|"
+    r"does?[ \t]+not|doesn't|don't|never)"
 )
 _DURABLE_RULE_PATTERNS = (
     re.compile(
@@ -56,8 +58,13 @@ _DURABLE_RULE_PATTERNS = (
         re.IGNORECASE,
     ),
     re.compile(
-        rf"\b{_ENGLISH_DURABLE_SCOPE_TEXT}.{{0,50}}"
-        rf"{_ENGLISH_DURABLE_ACTION_TEXT}\b",
+        rf"(?:^|[.!?;\n][ \t]*){_ENGLISH_DURABLE_SCOPE_TEXT}\b"
+        rf".{{0,36}}\b{_ENGLISH_DURABLE_MODAL_TEXT}\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        rf"(?:^|[.!?;\n][ \t]*){_ENGLISH_DURABLE_SCOPE_TEXT}\b[ \t]*"
+        rf"(?:(?:always|please)[ \t]+)*{_ENGLISH_DURABLE_IMPERATIVE_TEXT}\b",
         re.IGNORECASE,
     ),
     re.compile(
@@ -69,7 +76,8 @@ _DURABLE_SCOPE_COMMA_PATTERN = re.compile(
     rf"(?P<scope>(?:{_CHINESE_DURABLE_SCOPE_TEXT}|"
     rf"\b{_ENGLISH_DURABLE_SCOPE_TEXT}\b)[^,，。！？!?；;\r\n]{{0,50}})"
     rf"[,，][ \t]*(?=(?:(?:都|也)[ \t]*)?{_CHINESE_DURABLE_ACTION_TEXT}|"
-    rf"(?:(?:always|please)[ \t]+)*{_ENGLISH_DURABLE_ACTION_TEXT}\b)",
+    rf"(?:(?:always|please)[ \t]+)*{_ENGLISH_DURABLE_IMPERATIVE_TEXT}\b|"
+    rf"[^,;.!?\r\n]{{0,24}}\b{_ENGLISH_DURABLE_MODAL_TEXT}\b)",
     re.IGNORECASE,
 )
 _EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
@@ -145,6 +153,10 @@ _PYTHON_EXCEPTION_GROUP_END_PATTERN = re.compile(r"^\s*\+-+\s*$")
 _PYTHON_TRACEBACK_TERMINAL_PATTERN = re.compile(
     r"^(?![ \t])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?::.*)?[ \t]*$"
 )
+_PYTHON_STANDALONE_EXCEPTION_PATTERN = re.compile(
+    r"^(?![ \t])(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*(?:Error|Exception)"
+    r"(?::.*)?[ \t]*$"
+)
 _SMART_APOSTROPHE_TRANSLATION = str.maketrans({"‘": "'", "’": "'"})
 
 
@@ -217,7 +229,7 @@ def _visible_prose_lines(text: str) -> list[str]:
         if (
             re.match(r"^\s*>", line)
             or _LOG_LINE_PATTERN.match(line)
-            or _PYTHON_TRACEBACK_TERMINAL_PATTERN.fullmatch(line)
+            or _PYTHON_STANDALONE_EXCEPTION_PATTERN.fullmatch(line)
         ):
             continue
         visible.append(line)
@@ -296,6 +308,8 @@ def is_lesson_candidate(prompt: str) -> bool:
     ]
     for clause in clauses:
         if _QUESTION_END_PATTERN.search(clause):
+            if _SELF_DOUBT_QUESTION_PATTERN.search(clause):
+                continue
             for boundary in _QUESTION_PREFIX_BOUNDARY_PATTERN.finditer(clause):
                 explicit_prefix = clause[: boundary.start()].rstrip()
                 if (

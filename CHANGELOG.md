@@ -40,6 +40,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Distinguished past-participle answer modifiers from active attribution sources.
 - Added Python ExceptionGroup traceback scoping and aligned lowercase `the answer` sentence boundaries.
 - Required a real log level after timestamps, added bare result/output corrections, and recognized sentence-initial `Never` prohibitions.
+- Limited standalone exception filtering to Error/Exception class lines, required imperative/modal English durable rules, and extended self-doubt scope across colons.
 
 ## [v0.1.0] - 2026-07-26
 
