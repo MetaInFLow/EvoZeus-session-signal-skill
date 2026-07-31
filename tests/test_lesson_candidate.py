@@ -15,6 +15,11 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
     LESSON_CANDIDATE_API,
+    MAX_ALIASES_PER_TARGET,
+    MAX_ALIAS_CHARS,
+    MAX_PROMPT_CHARS,
+    MAX_TARGETS,
+    USER_PROMPT_EVENT,
     evaluate_lesson_candidate,
     is_lesson_candidate,
     select_lesson_target,
@@ -48,6 +53,21 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
+    assert is_lesson_candidate(prompt) is False
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        '请分析这句话："your answer is wrong"。',
+        "引用如下：\n> 这个结果错了，请修改。\n请分析语气。",
+        "```text\nyour answer is wrong\n```\n请总结代码块。",
+        "ERROR your answer is wrong\n请分析这段日志。",
+        "客户说这个结果错了，请帮我归纳客户原话。",
+        "Someone said your answer is wrong; summarize their feedback.",
+    ],
+)
+def test_quoted_code_log_and_attributed_corrections_do_not_trigger(prompt: str) -> None:
     assert is_lesson_candidate(prompt) is False
 
 
@@ -124,6 +144,7 @@ def test_candidate_response_is_model_only_and_does_not_echo_prompt_or_local_path
     response = evaluate_lesson_candidate(
         {
             "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
             "prompt": prompt,
             "cwd": str(local_path / "src"),
             "targets": [_target("MetaInFlow/example", local_path, "example")],
@@ -144,6 +165,7 @@ def test_neutral_response_has_no_guidance() -> None:
     assert evaluate_lesson_candidate(
         {
             "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
             "prompt": "请继续当前任务。",
             "cwd": None,
             "targets": [],
@@ -159,6 +181,7 @@ def test_cli_reads_stdin_json_and_creates_no_runtime_files(tmp_path: Path) -> No
     before = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
     request = {
         "schema_version": LESSON_CANDIDATE_API,
+        "event_name": USER_PROMPT_EVENT,
         "prompt": "以后每次都必须先检查验收标准。",
         "cwd": str(work),
         "targets": [],
@@ -206,6 +229,65 @@ def test_cli_rejects_invalid_input_without_echoing_it(tmp_path: Path) -> None:
     assert result.stdout == ""
     assert result.stderr == "invalid lesson-candidate request\n"
     assert marker not in result.stderr
+
+
+def test_api_rejects_non_user_prompt_event() -> None:
+    with pytest.raises(ValueError, match="event"):
+        evaluate_lesson_candidate(
+            {
+                "schema_version": LESSON_CANDIDATE_API,
+                "event_name": "SessionStart",
+                "prompt": "这个结果错了。",
+                "targets": [],
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {
+            "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
+            "prompt": "x" * (MAX_PROMPT_CHARS + 1),
+            "targets": [],
+        },
+        {
+            "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
+            "prompt": "这个结果错了。",
+            "targets": [{}] * (MAX_TARGETS + 1),
+        },
+        {
+            "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
+            "prompt": "这个结果错了。",
+            "targets": [
+                {
+                    "repo": "MetaInFlow/example",
+                    "canonical_path": "/tmp/example",
+                    "aliases": ["alias"] * (MAX_ALIASES_PER_TARGET + 1),
+                }
+            ],
+        },
+        {
+            "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
+            "prompt": "这个结果错了。",
+            "targets": [
+                {
+                    "repo": "MetaInFlow/example",
+                    "canonical_path": "/tmp/example",
+                    "aliases": ["x" * (MAX_ALIAS_CHARS + 1)],
+                }
+            ],
+        },
+    ],
+    ids=["prompt", "targets", "aliases", "alias-length"],
+)
+def test_api_enforces_bounded_scan_inputs(payload: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        evaluate_lesson_candidate(payload)
 
 
 def test_component_contract_fixes_version_api_entrypoint_and_file_digests() -> None:

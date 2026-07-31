@@ -23,7 +23,7 @@
 
 固定标识：`evozeus.session-signal.lesson-candidate.v1`
 
-组件 attachment：`contracts/lesson-candidate-v1.json` 固定未来产品渠道要消费的 component version `v0.1.1`、API、entrypoint 与实现文件摘要。本 PR 不创建 tag 或 Release；渠道发布完成前，调用方应把旧版或缺失组件视为 unavailable 并 fail-open。
+组件 attachment：`contracts/lesson-candidate-v1.json` 固定未来产品渠道要消费的 component version `v0.1.1`、API、entrypoint 与实现文件摘要。当前已发布版本和 `pyproject.toml` 仍为 `v0.1.0`；`v0.1.1` 表示 Unreleased 的下一组件合同。本 PR 不创建 tag 或 Release；渠道发布完成前，调用方应把旧版或缺失组件视为 unavailable 并 fail-open。
 
 入口：
 
@@ -38,6 +38,7 @@ CLI 只从 stdin 读取一个 JSON object，并只向 stdout 写一个 JSON obje
 ```json
 {
   "schema_version": "evozeus.session-signal.lesson-candidate.v1",
+  "event_name": "UserPromptSubmit",
   "prompt": "用户当前一轮原文",
   "cwd": "/absolute/current/workspace",
   "targets": [
@@ -77,8 +78,12 @@ CLI 只从 stdin 读取一个 JSON object，并只向 stdout 写一个 JSON obje
 - 明确否定、漏检、误判、不满意、机制缺陷可形成 correction candidate。
 - “以后 / 每次 / 始终 / 所有用户”等持续范围词需要同时出现明确行动约束，才形成 durable-rule candidate。
 - 中性任务、开放问题和“是不是 / 是否 / 对不对”等歧义询问保持 `candidate=false`。
+- 只接受 `event_name=UserPromptSubmit`；其他事件稳定拒绝。
+- fenced code、Markdown blockquote、inline quote、常见 log 行和带“他说 / 用户说 / someone said”等归因标记的转述 clause 不进入判断文本。
 - 目标优先使用 `cwd` containment；没有 containment 证据时，只接受唯一注册目标 alias。
 - 多目标 alias、alias 冲突或无证据均进入 unassigned。
+
+输入上限：prompt `32,000` chars、targets `256`、每个 target aliases `32`、每个 alias `128` chars；总 stdin JSON 额外受 `256 KiB` 限制。越界请求稳定拒绝，由 Hook 调用方 fail-open。
 
 ## 隐私与副作用
 

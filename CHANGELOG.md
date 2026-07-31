@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+The component attachment declares the intended next component version `v0.1.1`; the current published package remains `v0.1.0` until a separate product release.
+
 ### Added
 
 - Added the read-only `evozeus.session-signal.lesson-candidate.v1` method and stdin/stdout CLI for high-precision normal Chat correction and durable-rule candidates.

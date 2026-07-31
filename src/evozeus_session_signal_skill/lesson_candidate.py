@@ -10,7 +10,12 @@ from typing import Any
 
 
 LESSON_CANDIDATE_API = "evozeus.session-signal.lesson-candidate.v1"
+USER_PROMPT_EVENT = "UserPromptSubmit"
 MAX_REQUEST_BYTES = 256 * 1024
+MAX_PROMPT_CHARS = 32_000
+MAX_TARGETS = 256
+MAX_ALIASES_PER_TARGET = 32
+MAX_ALIAS_CHARS = 128
 MAX_GUIDANCE_CHARS = 4_096
 
 _DIRECT_CORRECTION_PATTERNS = tuple(
@@ -44,11 +49,51 @@ _AMBIGUOUS_QUESTION_PATTERNS = tuple(
     )
 )
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+_FENCED_BLOCK_PATTERN = re.compile(r"(?ms)^[ \t]*(```|~~~).*?^[ \t]*\1[ \t]*$")
+_INLINE_QUOTE_PATTERNS = tuple(
+    re.compile(pattern, re.DOTALL)
+    for pattern in (
+        r'"[^"\n]*"',
+        r"'[^'\n]*'",
+        r"“[^”\n]*”",
+        r"‘[^’\n]*’",
+        r"`[^`\n]*`",
+    )
+)
+_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
+    r"(?:他说|她说|用户说|客户说|对方说|别人说|转述|引用|日志.{0,8}(?:写|显示)|"
+    r"\b(?:he|she|they|the user|the customer|someone)\s+(?:said|wrote|reported)\b)",
+    re.IGNORECASE,
+)
+_LOG_LINE_PATTERN = re.compile(
+    r"^\s*(?:\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+\s+|"
+    r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)\b|"
+    r"Traceback\b|File \"|Exception\b|at\s+\S+)",
+    re.IGNORECASE,
+)
+
+
+def _candidate_text(prompt: str) -> str:
+    """Keep direct prose and discard stable quoted, code, and pasted-log forms."""
+    text = _FENCED_BLOCK_PATTERN.sub(" ", prompt)
+    for pattern in _INLINE_QUOTE_PATTERNS:
+        text = pattern.sub(" ", text)
+    lines = [
+        line
+        for line in text.splitlines()
+        if not re.match(r"^\s*>", line) and not _LOG_LINE_PATTERN.match(line)
+    ]
+    clauses = re.split(r"(?<=[。！？!?；;])\s*", "\n".join(lines))
+    return " ".join(
+        clause.strip()
+        for clause in clauses
+        if clause.strip() and not _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
+    )
 
 
 def is_lesson_candidate(prompt: str) -> bool:
     """Return whether one direct user turn carries a high-precision Lesson signal."""
-    normalized = " ".join(prompt.split())
+    normalized = " ".join(_candidate_text(prompt).split())
     if not normalized or any(pattern.search(normalized) for pattern in _AMBIGUOUS_QUESTION_PATTERNS):
         return False
     if any(pattern.search(normalized) for pattern in _DIRECT_CORRECTION_PATTERNS):
@@ -71,7 +116,9 @@ def _valid_target(value: object) -> dict[str, object] | None:
         or not Path(canonical_path).is_absolute()
         or not isinstance(aliases, Sequence)
         or isinstance(aliases, (str, bytes))
+        or len(aliases) > MAX_ALIASES_PER_TARGET
         or not all(isinstance(alias, str) and alias.strip() for alias in aliases)
+        or not all(len(alias) <= MAX_ALIAS_CHARS for alias in aliases)
     ):
         return None
     return {
@@ -158,6 +205,8 @@ def evaluate_lesson_candidate(request: Mapping[str, Any]) -> dict[str, Any]:
     """Evaluate one request without persistence, network access, or side effects."""
     if request.get("schema_version") != LESSON_CANDIDATE_API:
         raise ValueError("unsupported lesson-candidate API")
+    if request.get("event_name") != USER_PROMPT_EVENT:
+        raise ValueError("unsupported lesson-candidate event")
     prompt = request.get("prompt")
     targets = request.get("targets", [])
     if (
@@ -166,6 +215,10 @@ def evaluate_lesson_candidate(request: Mapping[str, Any]) -> dict[str, Any]:
         or isinstance(targets, (str, bytes))
     ):
         raise ValueError("invalid lesson-candidate request")
+    if len(prompt) > MAX_PROMPT_CHARS or len(targets) > MAX_TARGETS:
+        raise ValueError("lesson-candidate request exceeds its item limits")
+    if any(_valid_target(target) is None for target in targets):
+        raise ValueError("invalid lesson-candidate target inventory")
     if not is_lesson_candidate(prompt):
         return {"schema_version": LESSON_CANDIDATE_API, "candidate": False}
     target_repo = select_lesson_target(
