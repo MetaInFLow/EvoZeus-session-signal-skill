@@ -28,7 +28,9 @@ _DIRECT_CORRECTION_PATTERNS = tuple(
         r"(?:(?:我|我们)(?:刚刚|刚才|已经)?(?:发现了|遇到了)|(?:刚刚|刚才|已经)(?:发现了|遇到了)|这里有|这次(?:出现了|发生了)).{0,12}(?:bug|缺陷)",
         r"(?:无法|不能).{0,16}(?:自动|正常)(?:捕捉|记录|运行|识别|更新|升级)",
         r"(?:答案|回答)(?:是)?(?:不对|错了|有误)",
-        r"\b(?:this|that|the result|(?:the|this|your) answer)\s+"
+        r"\b(?:this|that|the result|(?:the|this|your) answer)"
+        r"(?:\s+(?:stated|reported|shown|displayed|provided|given|written)\s+"
+        r"(?:above|below|earlier|previously|by\s+(?:the\s+)?[a-z0-9_.-]+))?\s+"
         r"(?:is|was)\s+(?:wrong|incorrect)\b",
         r"\bthis\s+(?:should|must)\s+be\s+(?:corrected|fixed)\b",
         r"\bi(?:'m| am) not satisfied\b",
@@ -90,7 +92,7 @@ _INTRA_SENTENCE_BOUNDARY_PATTERN = re.compile(
 _COMMA_CLAUSE_BOUNDARY_PATTERN = re.compile(r"[,，][ \t]*")
 _ENGLISH_PERIOD_BOUNDARY_PATTERN = re.compile(
     r"\.[ \t]+(?=(?:[A-Z\u3400-\u9fff]|"
-    r"(?i:your answer|this|that|the result|i(?:'m| am)|you missed)\b))"
+    r"(?i:your answer|the answer|this|that|the result|i(?:'m| am)|you missed)\b))"
 )
 _ENGLISH_ABBREVIATIONS = ("e.g.", "i.e.")
 _INLINE_QUOTE_PATTERNS = tuple(
@@ -116,7 +118,8 @@ _GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     r"(?:^|[,;.!?][ \t]*)(?!(?:i|we|you)\b)"
     r"(?:(?:the|a|an)[ \t]+)?[a-z][a-z0-9_.-]*"
     r"(?:[ \t]+[a-z][a-z0-9_.-]*){0,3}[ \t]+"
-    r"(?:said|wrote|reported|noted|stated|claimed|thought|thinks?)\b",
+    r"(?:said|wrote|reported|noted|stated|claimed|thought|thinks?)\b"
+    r"(?![ \t]+(?:above|below|earlier|previously|by)\b)",
     re.IGNORECASE,
 )
 _LOG_LEVEL_TEXT = r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)"
@@ -129,6 +132,11 @@ _LOG_LINE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _PYTHON_TRACEBACK_START_PATTERN = re.compile(r"^\s*Traceback\b", re.IGNORECASE)
+_PYTHON_EXCEPTION_GROUP_START_PATTERN = re.compile(
+    r"^\s*\+\s+Exception Group Traceback\b",
+    re.IGNORECASE,
+)
+_PYTHON_EXCEPTION_GROUP_END_PATTERN = re.compile(r"^\s*\+-+\s*$")
 _PYTHON_TRACEBACK_TERMINAL_PATTERN = re.compile(
     r"^(?![ \t])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?::.*)?[ \t]*$"
 )
@@ -190,11 +198,15 @@ def _visible_prose_lines(text: str) -> list[str]:
     visible: list[str] = []
     in_python_traceback = False
     for line in text.splitlines():
-        if _PYTHON_TRACEBACK_START_PATTERN.match(line):
+        if _PYTHON_TRACEBACK_START_PATTERN.match(
+            line
+        ) or _PYTHON_EXCEPTION_GROUP_START_PATTERN.match(line):
             in_python_traceback = True
             continue
         if in_python_traceback:
-            if _PYTHON_TRACEBACK_TERMINAL_PATTERN.fullmatch(line):
+            if _PYTHON_TRACEBACK_TERMINAL_PATTERN.fullmatch(
+                line
+            ) or _PYTHON_EXCEPTION_GROUP_END_PATTERN.fullmatch(line):
                 in_python_traceback = False
             continue
         if (

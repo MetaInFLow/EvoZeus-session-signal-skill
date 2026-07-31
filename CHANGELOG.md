@@ -37,6 +37,8 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Generalized reporting-verb attribution to named sources and caller-defined roles.
 - Distinguished reporting verbs from Chinese compound nouns ending in `报告`.
 - Accepted contracted English durable prohibitions and RFC 3339 `Z` log timestamps.
+- Distinguished past-participle answer modifiers from active attribution sources.
+- Added Python ExceptionGroup traceback scoping and aligned lowercase `the answer` sentence boundaries.
 
 ## [v0.1.0] - 2026-07-26
 

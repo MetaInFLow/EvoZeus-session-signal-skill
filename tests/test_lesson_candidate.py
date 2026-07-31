@@ -67,6 +67,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "From now on, always run tests, is that okay?",
         "Someone said the old answer was acceptable. Your answer is wrong.",
         "Someone said the old answer was acceptable. your answer is wrong.",
+        "Someone said the old answer was acceptable. the answer is wrong.",
         "Your answer is wrong, but someone said the old answer was acceptable.",
         "Someone said the old answer was acceptable, but your answer is wrong.",
         "Someone said the old answer was okay, your answer is wrong.",
@@ -88,6 +89,16 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "[ERROR] quoted failure\nYour answer is wrong.",
         "[2026-07-31 12:00:00] [ERROR] quoted failure\nYour answer is wrong.",
         "At this point, your answer is wrong.",
+        "The answer stated above is wrong.",
+        "The result reported by the tool is wrong.",
+        (
+            "  + Exception Group Traceback (most recent call last):\n"
+            "  | ExceptionGroup: grouped (1 sub-exception)\n"
+            "  +-+---------------- 1 ----------------\n"
+            "    | AssertionError: quoted failure\n"
+            "    +------------------------------------\n"
+            "Your answer is wrong."
+        ),
     ],
 )
 def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> None:
@@ -177,6 +188,14 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         (
             'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
             "    raise Oops('bad')\n__main__.Oops: your answer is wrong\n"
+            "请分析这段 traceback。"
+        ),
+        (
+            "  + Exception Group Traceback (most recent call last):\n"
+            "  | ExceptionGroup: grouped (1 sub-exception)\n"
+            "  +-+---------------- 1 ----------------\n"
+            "    | AssertionError: your answer is wrong\n"
+            "    +------------------------------------\n"
             "请分析这段 traceback。"
         ),
         "AssertionError: your answer is wrong\n请分析这条异常日志。",
