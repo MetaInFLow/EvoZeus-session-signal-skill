@@ -35,6 +35,8 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Stopped inferring unregistered repository basenames as target aliases.
 - Preserved durable scope and action across natural Chinese and English comma clauses.
 - Generalized reporting-verb attribution to named sources and caller-defined roles.
+- Distinguished reporting verbs from Chinese compound nouns ending in `报告`.
+- Accepted contracted English durable prohibitions and RFC 3339 `Z` log timestamps.
 
 ## [v0.1.0] - 2026-07-26
 

@@ -46,7 +46,7 @@ _CHINESE_DURABLE_ACTION_TEXT = (
 )
 _ENGLISH_DURABLE_SCOPE_TEXT = r"(?:from now on|every time|always|for all users)"
 _ENGLISH_DURABLE_ACTION_TEXT = (
-    r"(?:must|remember|check|hide|show|ask|record|run|execute|never|do not)"
+    r"(?:must|remember|check|hide|show|ask|record|run|execute|never|do not|don't)"
 )
 _DURABLE_RULE_PATTERNS = (
     re.compile(
@@ -112,7 +112,7 @@ _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
 _GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     r"(?:^|[，,；;。！？!?\s])(?!(?:我|我们|咱们|你|你们))"
     r"[\u3400-\u9fffA-Za-z][\u3400-\u9fffA-Za-z0-9_.·-]{0,23}"
-    r"(?:说(?!的)|表示|指出|认为|称|报告|反馈)|"
+    r"(?:说|表示|指出|认为|称|报告|反馈)(?!的)|"
     r"(?:^|[,;.!?][ \t]*)(?!(?:i|we|you)\b)"
     r"(?:(?:the|a|an)[ \t]+)?[a-z][a-z0-9_.-]*"
     r"(?:[ \t]+[a-z][a-z0-9_.-]*){0,3}[ \t]+"
@@ -120,7 +120,7 @@ _GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _LOG_LEVEL_TEXT = r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)"
-_LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.,+-]+)"
+_LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.,+Zz-]+)"
 _LOG_LINE_PATTERN = re.compile(
     rf"^\s*(?:{_LOG_TIMESTAMP_TEXT}[ \t]+(?:\[{_LOG_LEVEL_TEXT}\][ \t]*)?|"
     rf"\[{_LOG_LEVEL_TEXT}\][ \t]*|"
