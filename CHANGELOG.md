@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-The component attachment declares the intended next component version `v0.1.1`; the current published package remains `v0.1.0` until a separate product release.
+The Lesson candidate method and API changes remain Unreleased; the current published package stays at `v0.1.0`. Product attachment, checksum and release ownership remain in the EvoZeus repository.
 
 ### Added
 
@@ -20,6 +20,8 @@ The component attachment declares the intended next component version `v0.1.1`; 
 - Excluded hypothetical corrections inside Chinese and English conditional clauses while preserving direct corrections outside their scope.
 - Removed Markdown fenced blocks using same-character fences of three or more markers and closers at least as long as their opener.
 - Preserved direct corrections after an English full-stop attribution clause and durable rules before a separate Chinese or English confirmation tail.
+- Excluded hypothetical durable rules and preserved direct corrections joined to attributed text by Chinese or English conjunctions.
+- Replaced the component checksum attachment with a method/API-only contract.
 
 ## [v0.1.0] - 2026-07-26
 

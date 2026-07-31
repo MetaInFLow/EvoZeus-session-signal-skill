@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -43,6 +42,12 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "From now on, always check the release boundary before tagging.",
         "From now on, always run tests, is that okay?",
         "Someone said the old answer was acceptable. Your answer is wrong.",
+        "Your answer is wrong, but someone said the old answer was acceptable.",
+        "Someone said the old answer was acceptable, but your answer is wrong.",
+        "这个结果不对，但客户说旧版才是对的。",
+        "客户说旧版才是对的，但这个结果不对。",
+        "If cost permits, from now on always run tests.",
+        "假设只讨论预算，今后每次都必须检查 diff。",
     ],
 )
 def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> None:
@@ -66,6 +71,8 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "假如你的回答错了，请重新运行。",
         "If your answer is wrong, rerun it.",
         "Please rerun when the result is incorrect.",
+        "假设今后每次都必须检查 diff，我们需要评估成本。",
+        "If from now on we must always run tests, update the estimate.",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
@@ -328,24 +335,39 @@ def test_api_enforces_bounded_scan_inputs(payload: dict[str, object]) -> None:
         evaluate_lesson_candidate(payload)
 
 
-def test_component_contract_fixes_version_api_entrypoint_and_file_digests() -> None:
+def test_api_contract_excludes_distribution_and_checksum_ownership() -> None:
     contract = json.loads(
-        (ROOT / "contracts/lesson-candidate-v1.json").read_text(encoding="utf-8")
+        (ROOT / "contracts/lesson-candidate-api-v1.json").read_text(encoding="utf-8")
     )
 
     assert contract == {
-        "schema_version": "evozeus.session-signal.lesson-candidate-component.v1",
-        "component_version": "v0.1.1",
+        "schema_version": "evozeus.session-signal.lesson-candidate-api-contract.v1",
         "api": LESSON_CANDIDATE_API,
-        "entrypoint": "scripts/evaluate_lesson_candidate.py",
-        "files": contract["files"],
+        "event_name": USER_PROMPT_EVENT,
+        "transport": "stdin_stdout_json",
+        "request": {
+            "required": ["schema_version", "event_name", "prompt", "targets"],
+            "optional": ["cwd"],
+            "limits": {
+                "request_bytes": 262144,
+                "prompt_chars": MAX_PROMPT_CHARS,
+                "targets": MAX_TARGETS,
+                "aliases_per_target": MAX_ALIASES_PER_TARGET,
+                "alias_chars": MAX_ALIAS_CHARS,
+            },
+        },
+        "response": {
+            "neutral_fields": ["schema_version", "candidate"],
+            "candidate_fields": [
+                "schema_version",
+                "candidate",
+                "target_repo",
+                "model_guidance",
+            ],
+        },
+        "side_effects": {"persistence": False, "network": False},
     }
-    assert {entry["path"] for entry in contract["files"]} == {
-        "scripts/evaluate_lesson_candidate.py",
-        "src/evozeus_session_signal_skill/lesson_candidate.py",
-    }
-    for entry in contract["files"]:
-        path = ROOT / entry["path"]
-        assert path.is_file()
-        assert not path.is_symlink()
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == entry["sha256"]
+    serialized = json.dumps(contract, sort_keys=True)
+    assert "sha256" not in serialized
+    assert "component_version" not in contract
+    assert "entrypoint" not in contract

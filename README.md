@@ -166,7 +166,7 @@ FactorResult 不携带前端代码。前端组件由 infra 的 visualization com
 printf '%s' '<request-json>' | PYTHONDONTWRITEBYTECODE=1 python3 scripts/evaluate_lesson_candidate.py
 ```
 
-该 CLI 拥有 correction / durable-rule 判断、注册目标选择与 model-only guidance 合同。它只读 stdin 并写 stdout，不持久化 prompt 或候选；`contracts/lesson-candidate-v1.json` 固定未来渠道 attachment。当前 Release / package version 仍为 `v0.1.0`，合同中的 `v0.1.1` 属于 Unreleased，等待后续产品渠道发布。产品渠道发现、组件摘要校验和 Hook fail-open 由调用方负责。完整合同见 [普通 Chat Lesson Candidate 只读合同](docs/design/normal-chat-lesson-candidate-contract.md)。
+该 CLI 拥有 correction / durable-rule 判断、注册目标选择与 model-only guidance 合同。它只读 stdin 并写 stdout，不持久化 prompt 或候选；`contracts/lesson-candidate-api-v1.json` 只固定方法/API，不承担 component version、entrypoint、checksum 或 release manifest。当前 Release / package version 仍为 `v0.1.0`；产品渠道发现、完整性校验、Hook runtime 与发布责任归 EvoZeus 主仓库。完整合同见 [普通 Chat Lesson Candidate 只读合同](docs/design/normal-chat-lesson-candidate-contract.md)。
 
 这意味着使用者需要同时具备：
 

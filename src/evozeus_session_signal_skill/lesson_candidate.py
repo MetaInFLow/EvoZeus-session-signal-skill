@@ -61,6 +61,11 @@ _HYPOTHETICAL_CUE_PATTERN = re.compile(
     r"(?:如果|假如|假设|若(?:是|果)?|倘若|万一|(?<![\w])(?:if|when)(?![\w]))",
     re.IGNORECASE,
 )
+_CLAUSE_BOUNDARY_PATTERN = re.compile(
+    r"(?<=[。！？!?；;])[^\S\r\n]*|(?<=\.)[ \t]+(?=[A-Z\u3400-\u9fff])|"
+    r"(?:[,，][ \t]*)?(?=(?:但(?:是)?|不过|然而|可是))|"
+    r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)|\r?\n+"
+)
 _INLINE_QUOTE_PATTERNS = tuple(
     re.compile(pattern, re.DOTALL)
     for pattern in (
@@ -119,10 +124,7 @@ def _candidate_text(prompt: str) -> str:
         for line in text.splitlines()
         if not re.match(r"^\s*>", line) and not _LOG_LINE_PATTERN.match(line)
     ]
-    clauses = re.split(
-        r"(?<=[。！？!?；;])[^\S\r\n]*|(?<=\.)[ \t]+(?=[A-Z\u3400-\u9fff])|\r?\n+",
-        "\n".join(lines),
-    )
+    clauses = _CLAUSE_BOUNDARY_PATTERN.split("\n".join(lines))
     return "\n".join(
         clause.strip()
         for clause in clauses
@@ -130,8 +132,8 @@ def _candidate_text(prompt: str) -> str:
     )
 
 
-def _has_direct_correction(clause: str) -> bool:
-    for pattern in _DIRECT_CORRECTION_PATTERNS:
+def _has_non_hypothetical_match(clause: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
+    for pattern in patterns:
         for match in pattern.finditer(clause):
             local_context = re.split(r"[,，]", clause[: match.end()])[-1]
             if not _HYPOTHETICAL_CUE_PATTERN.search(local_context):
@@ -139,10 +141,16 @@ def _has_direct_correction(clause: str) -> bool:
     return False
 
 
+def _has_direct_correction(clause: str) -> bool:
+    return _has_non_hypothetical_match(clause, _DIRECT_CORRECTION_PATTERNS)
+
+
+def _has_durable_rule(clause: str) -> bool:
+    return _has_non_hypothetical_match(clause, _DURABLE_RULE_PATTERNS)
+
+
 def _has_explicit_signal(clause: str) -> bool:
-    return _has_direct_correction(clause) or any(
-        pattern.search(clause) for pattern in _DURABLE_RULE_PATTERNS
-    )
+    return _has_direct_correction(clause) or _has_durable_rule(clause)
 
 
 def is_lesson_candidate(prompt: str) -> bool:
@@ -172,7 +180,7 @@ def is_lesson_candidate(prompt: str) -> bool:
             return True
         if re.search(r"[?？][\"'”’）)]*\s*$", clause):
             continue
-        if any(pattern.search(clause) for pattern in _DURABLE_RULE_PATTERNS):
+        if _has_durable_rule(clause):
             return True
     return False
 

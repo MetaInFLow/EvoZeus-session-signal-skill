@@ -14,16 +14,16 @@
 | 高精度 correction / durable-rule 判断 | Session Signal |
 | `cwd` containment 与唯一 alias 目标选择 | Session Signal |
 | 自然语言 model-only guidance | Session Signal |
-| UserPromptSubmit Hook 注册 | CoEvolve |
-| 已注册目标 inventory | CoEvolve |
-| 产品渠道组件发现、固定版本与脚本摘要校验 | CoEvolve / EvoZeus 产品渠道 |
+| UserPromptSubmit Hook 注册与生命周期 | CoEvolve |
+| 已注册目标 inventory 消费 | EvoZeus Runtime（读取 CoEvolve 项目指针） |
+| 产品渠道组件发现、固定版本、完整性校验与 subprocess transport | EvoZeus 主仓库 |
 | Feedback Issue 写入 | 后续用户明确确认后的 CoEvolve 流程 |
 
 ## API
 
 固定标识：`evozeus.session-signal.lesson-candidate.v1`
 
-组件 attachment：`contracts/lesson-candidate-v1.json` 固定未来产品渠道要消费的 component version `v0.1.1`、API、entrypoint 与实现文件摘要。当前已发布版本和 `pyproject.toml` 仍为 `v0.1.0`；`v0.1.1` 表示 Unreleased 的下一组件合同。本 PR 不创建 tag 或 Release；渠道发布完成前，调用方应把旧版或缺失组件视为 unavailable 并 fail-open。
+方法合同：`contracts/lesson-candidate-api-v1.json` 只固定 API、事件、请求/响应字段、输入上限与副作用边界。component version、entrypoint、checksum、release manifest 和产品渠道 attachment 由 EvoZeus 主仓库维护。本 PR 不创建 tag 或 Release；产品渠道集成完成前，runtime 应把缺失能力视为 unavailable 并 fail-open。
 
 入口：
 
@@ -90,7 +90,7 @@ CLI 只从 stdin 读取一个 JSON object，并只向 stdout 写一个 JSON obje
 - 方法和 CLI 不写文件、不访问网络、不创建 Issue、不生成 signal ID。
 - 输出不回显 raw prompt、cwd、canonical path 或内部诊断对象。
 - guidance 只指导模型先完成业务纠正，再询问是否记录；记录授权和修复授权分别确认。
-- 调用方必须设置短 timeout 和 `PYTHONDONTWRITEBYTECODE=1`，并在异常时 fail-open。
+- EvoZeus Runtime 必须设置短 timeout 和 `PYTHONDONTWRITEBYTECODE=1`，并在异常时 fail-open。
 
 ## 验收
 
