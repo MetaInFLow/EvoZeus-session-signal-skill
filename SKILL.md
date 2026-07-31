@@ -47,6 +47,8 @@ Do not promote a session to Skill just because it is high-signal. Prefer the sma
 
 Start neutral, then apply direct gates. Use diagnostics only to explain or downgrade. These labels are compatibility labels for existing review pages; the final artifact route can be non-Skill.
 
+For one-turn normal Chat Lesson discovery, use the read-only `evozeus.session-signal.lesson-candidate.v1` method and CLI. Session Signal owns high-precision correction/durable-rule detection, registered-target selection by cwd containment or one unique alias, and model-only natural-language guidance. The caller owns trusted component discovery and registered-target inventory; no candidate is persisted without later user confirmation.
+
 | Label | Use When |
 | --- | --- |
 | `success_skill_candidate` | Task is completed and the evidence shows a reusable workflow, acceptance pattern, or implementation process. |

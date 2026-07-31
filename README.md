@@ -160,6 +160,14 @@ FactorResult 不携带前端代码。前端组件由 infra 的 visualization com
 
 当前 P0 发布形态是 source checkout integration：`evozeus-runtime` 通过 `--official-repo-root /path/to/EvoZeus-session-signal-skill` 读取 `factors/` 和 `templates/`。
 
+普通 Chat 的只读 Lesson 候选判断使用固定 API `evozeus.session-signal.lesson-candidate.v1`：
+
+```bash
+printf '%s' '<request-json>' | PYTHONDONTWRITEBYTECODE=1 python3 scripts/evaluate_lesson_candidate.py
+```
+
+该 CLI 拥有 correction / durable-rule 判断、注册目标选择与 model-only guidance 合同。它只读 stdin 并写 stdout，不持久化 prompt 或候选；`contracts/lesson-candidate-v1.json` 固定未来渠道 attachment，产品渠道发现、组件摘要校验和 Hook fail-open 由调用方负责。完整合同见 [普通 Chat Lesson Candidate 只读合同](docs/design/normal-chat-lesson-candidate-contract.md)。
+
 这意味着使用者需要同时具备：
 
 - `EvoZeus-infra`：提供 `evozeus-runtime` CLI、scanner、runner、ledger 和 HTML 报告生成。
