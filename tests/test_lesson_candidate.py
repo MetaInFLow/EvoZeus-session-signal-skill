@@ -57,10 +57,27 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "以后应该怎么做？",
         "帮我检查 PR 状态。",
         "请帮我发现并修复这个 bug。",
+        "如果这个结果不对，请重新运行。",
+        "假如你的回答错了，请重新运行。",
+        "If your answer is wrong, rerun it.",
+        "Please rerun when the result is incorrect.",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
     assert is_lesson_candidate(prompt) is False
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "如果你需要更多背景，这个结果不对。",
+        "这个结果不对，如果需要我可以补充日志。",
+        "If you need more context, your answer is wrong.",
+        "Your answer is wrong; when needed, I can provide the logs.",
+    ],
+)
+def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str) -> None:
+    assert is_lesson_candidate(prompt) is True
 
 
 @pytest.mark.parametrize(
@@ -71,6 +88,12 @@ def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
         "引用如下：\n> 这个结果错了，请修改。\n请分析语气。",
         "引用如下：这个结果错了，请分析语气。",
         "```text\nyour answer is wrong\n```\n请总结代码块。",
+        "````text\nyour answer is wrong\n````\n请总结代码块。",
+        "~~~~text\nyour answer is wrong\n~~~~~\n请总结代码块。",
+        (
+            "````markdown\n```python\nyour answer is wrong\n```\n"
+            "~~~~\nthis result is wrong\n~~~~\n`````\n请总结嵌套围栏。"
+        ),
         "ERROR your answer is wrong\n请分析这段日志。",
         "客户说这个结果错了，请帮我归纳客户原话。",
         "Someone said your answer is wrong; summarize their feedback.",

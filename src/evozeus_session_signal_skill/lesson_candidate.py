@@ -49,7 +49,12 @@ _AMBIGUOUS_QUESTION_PATTERNS = tuple(
     )
 )
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-_FENCED_BLOCK_PATTERN = re.compile(r"(?ms)^[ \t]*(```|~~~).*?^[ \t]*\1[ \t]*$")
+_FENCE_OPEN_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[^\r\n]*$")
+_FENCE_CLOSE_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[ \t]*$")
+_HYPOTHETICAL_CUE_PATTERN = re.compile(
+    r"(?:如果|假如|假设|若(?:是|果)?|倘若|万一|(?<![\w])(?:if|when)(?![\w]))",
+    re.IGNORECASE,
+)
 _INLINE_QUOTE_PATTERNS = tuple(
     re.compile(pattern, re.DOTALL)
     for pattern in (
@@ -74,9 +79,33 @@ _LOG_LINE_PATTERN = re.compile(
 )
 
 
+def _without_fenced_blocks(text: str) -> str:
+    visible: list[str] = []
+    fence_character: str | None = None
+    fence_length = 0
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        if fence_character is not None:
+            closing = _FENCE_CLOSE_PATTERN.fullmatch(content)
+            if closing:
+                fence = closing.group("fence")
+                if fence[0] == fence_character and len(fence) >= fence_length:
+                    fence_character = None
+                    fence_length = 0
+            continue
+        opening = _FENCE_OPEN_PATTERN.fullmatch(content)
+        if opening:
+            fence = opening.group("fence")
+            fence_character = fence[0]
+            fence_length = len(fence)
+            continue
+        visible.append(line)
+    return "".join(visible)
+
+
 def _candidate_text(prompt: str) -> str:
     """Keep direct prose and discard stable quoted, code, and pasted-log forms."""
-    text = _FENCED_BLOCK_PATTERN.sub(" ", prompt)
+    text = _without_fenced_blocks(prompt)
     for pattern in _INLINE_QUOTE_PATTERNS:
         text = pattern.sub(" ", text)
     lines = [
@@ -90,6 +119,15 @@ def _candidate_text(prompt: str) -> str:
         for clause in clauses
         if clause.strip() and not _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
     )
+
+
+def _has_direct_correction(clause: str) -> bool:
+    for pattern in _DIRECT_CORRECTION_PATTERNS:
+        for match in pattern.finditer(clause):
+            local_context = re.split(r"[,，]", clause[: match.end()])[-1]
+            if not _HYPOTHETICAL_CUE_PATTERN.search(local_context):
+                return True
+    return False
 
 
 def is_lesson_candidate(prompt: str) -> bool:
@@ -106,13 +144,13 @@ def is_lesson_candidate(prompt: str) -> bool:
         )
         if ambiguous:
             explicit_prefix = clause[: ambiguous.start()].rstrip(" ，,：:")
-            if explicit_prefix and any(
-                pattern.search(explicit_prefix)
-                for pattern in (*_DIRECT_CORRECTION_PATTERNS, *_DURABLE_RULE_PATTERNS)
+            if explicit_prefix and (
+                _has_direct_correction(explicit_prefix)
+                or any(pattern.search(explicit_prefix) for pattern in _DURABLE_RULE_PATTERNS)
             ):
                 return True
             continue
-        if any(pattern.search(clause) for pattern in _DIRECT_CORRECTION_PATTERNS):
+        if _has_direct_correction(clause):
             return True
         if re.search(r"[?？][\"'”’）)]*\s*$", clause):
             continue
