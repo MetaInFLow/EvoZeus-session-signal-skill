@@ -27,7 +27,7 @@ _DIRECT_CORRECTION_PATTERNS = tuple(
         r"(?:我(?:很)?不满意|不符合(?:我的)?预期|你.{0,12}(?:(?:没有|没)(?:发现|识别|捕捉到)|漏了|漏掉|遗漏|漏检|误判|搞错))",
         r"(?:(?:我|我们)(?:刚刚|刚才|已经)?(?:发现了|遇到了)|(?:刚刚|刚才|已经)(?:发现了|遇到了)|这里有|这次(?:出现了|发生了)).{0,12}(?:bug|缺陷)",
         r"(?:无法|不能).{0,16}(?:自动|正常)(?:捕捉|记录|运行|识别|更新|升级)",
-        r"(?:答案|回答)(?:是)?(?:不对|错了|有误)",
+        r"(?:答案|回答|结果|输出)(?:是)?(?:不对|错了|有误)",
         r"\b(?:this|that|the result|(?:the|this|your) answer)"
         r"(?:\s+(?:stated|reported|shown|displayed|provided|given|written)\s+"
         r"(?:above|below|earlier|previously|by\s+(?:the\s+)?[a-z0-9_.-]+))?\s+"
@@ -58,6 +58,10 @@ _DURABLE_RULE_PATTERNS = (
     re.compile(
         rf"\b{_ENGLISH_DURABLE_SCOPE_TEXT}.{{0,50}}"
         rf"{_ENGLISH_DURABLE_ACTION_TEXT}\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|[.!?;\n][ \t]*)never[ \t]+(?!mind\b)[a-z][a-z0-9_-]*\b",
         re.IGNORECASE,
     ),
 )
@@ -125,7 +129,8 @@ _GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
 _LOG_LEVEL_TEXT = r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)"
 _LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.,+Zz-]+)"
 _LOG_LINE_PATTERN = re.compile(
-    rf"^\s*(?:{_LOG_TIMESTAMP_TEXT}[ \t]+(?:\[{_LOG_LEVEL_TEXT}\][ \t]*)?|"
+    rf"^\s*(?:{_LOG_TIMESTAMP_TEXT}[ \t]+"
+    rf"(?:\[{_LOG_LEVEL_TEXT}\]|{_LOG_LEVEL_TEXT}\b)[ \t]*|"
     rf"\[{_LOG_LEVEL_TEXT}\][ \t]*|"
     rf"{_LOG_LEVEL_TEXT}\b|"
     r"Traceback\b|File \"|Exception\b|at\s+[\w.$<>]+\([^()\r\n]*\))",

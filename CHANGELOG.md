@@ -39,6 +39,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Accepted contracted English durable prohibitions and RFC 3339 `Z` log timestamps.
 - Distinguished past-participle answer modifiers from active attribution sources.
 - Added Python ExceptionGroup traceback scoping and aligned lowercase `the answer` sentence boundaries.
+- Required a real log level after timestamps, added bare result/output corrections, and recognized sentence-initial `Never` prohibitions.
 
 ## [v0.1.0] - 2026-07-26
 
