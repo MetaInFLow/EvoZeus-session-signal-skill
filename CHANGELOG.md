@@ -22,6 +22,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Preserved direct corrections after an English full-stop attribution clause and durable rules before a separate Chinese or English confirmation tail.
 - Excluded hypothetical durable rules and preserved direct corrections joined to attributed text by Chinese or English conjunctions.
 - Replaced the component checksum attachment with a method/API-only contract.
+- Required an explicit target inventory field and preserved lowercase English corrections after attributed sentences.
 
 ## [v0.1.0] - 2026-07-26
 

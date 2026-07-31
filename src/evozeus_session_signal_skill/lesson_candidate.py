@@ -62,7 +62,9 @@ _HYPOTHETICAL_CUE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _CLAUSE_BOUNDARY_PATTERN = re.compile(
-    r"(?<=[。！？!?；;])[^\S\r\n]*|(?<=\.)[ \t]+(?=[A-Z\u3400-\u9fff])|"
+    r"(?<=[。！？!?；;])[^\S\r\n]*|"
+    r"(?<=\.)[ \t]+(?=(?:[A-Z\u3400-\u9fff]|"
+    r"(?i:your answer|this|that|the result|i(?:'m| am)|you missed)\b))|"
     r"(?:[,，][ \t]*)?(?=(?:但(?:是)?|不过|然而|可是))|"
     r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)|\r?\n+"
 )
@@ -290,9 +292,10 @@ def evaluate_lesson_candidate(request: Mapping[str, Any]) -> dict[str, Any]:
     if request.get("event_name") != USER_PROMPT_EVENT:
         raise ValueError("unsupported lesson-candidate event")
     prompt = request.get("prompt")
-    targets = request.get("targets", [])
+    targets = request.get("targets")
     if (
-        not isinstance(prompt, str)
+        "targets" not in request
+        or not isinstance(prompt, str)
         or not isinstance(targets, Sequence)
         or isinstance(targets, (str, bytes))
     ):

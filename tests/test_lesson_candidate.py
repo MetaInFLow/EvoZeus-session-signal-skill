@@ -42,6 +42,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "From now on, always check the release boundary before tagging.",
         "From now on, always run tests, is that okay?",
         "Someone said the old answer was acceptable. Your answer is wrong.",
+        "Someone said the old answer was acceptable. your answer is wrong.",
         "Your answer is wrong, but someone said the old answer was acceptable.",
         "Someone said the old answer was acceptable, but your answer is wrong.",
         "这个结果不对，但客户说旧版才是对的。",
@@ -286,6 +287,28 @@ def test_api_rejects_non_user_prompt_event() -> None:
                 "targets": [],
             }
         )
+
+
+def test_api_requires_explicit_target_inventory() -> None:
+    with pytest.raises(ValueError, match="invalid lesson-candidate request"):
+        evaluate_lesson_candidate(
+            {
+                "schema_version": LESSON_CANDIDATE_API,
+                "event_name": USER_PROMPT_EVENT,
+                "prompt": "这个结果错了。",
+            }
+        )
+
+    response = evaluate_lesson_candidate(
+        {
+            "schema_version": LESSON_CANDIDATE_API,
+            "event_name": USER_PROMPT_EVENT,
+            "prompt": "这个结果错了。",
+            "targets": [],
+        }
+    )
+    assert response["candidate"] is True
+    assert response["target_repo"] is None
 
 
 @pytest.mark.parametrize(
