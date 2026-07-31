@@ -40,6 +40,7 @@ _DURABLE_RULE_PATTERNS = tuple(
         r"\b(?:from now on|every time|always|for all users).{0,50}(?:must|remember|check|hide|show|ask|record|run|execute|never|do not)\b",
     )
 )
+_EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
 _AMBIGUOUS_QUESTION_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -93,6 +94,12 @@ _LOG_LINE_PATTERN = re.compile(
     r"Traceback\b|File \"|Exception\b|at\s+\S+)",
     re.IGNORECASE,
 )
+_PYTHON_TRACEBACK_START_PATTERN = re.compile(r"^\s*Traceback\b", re.IGNORECASE)
+_PYTHON_TRACEBACK_TERMINAL_PATTERN = re.compile(
+    r"^\s*(?:[A-Za-z_][\w.]*(?:Error|Exception|Warning)|"
+    r"KeyboardInterrupt|SystemExit)(?::.*)?\s*$"
+)
+_SMART_APOSTROPHE_TRANSLATION = str.maketrans({"‘": "'", "’": "'"})
 
 
 def _without_fenced_blocks(text: str) -> str:
@@ -133,16 +140,30 @@ def _split_clauses(text: str) -> list[str]:
     return clauses
 
 
+def _visible_prose_lines(text: str) -> list[str]:
+    visible: list[str] = []
+    in_python_traceback = False
+    for line in text.splitlines():
+        if _PYTHON_TRACEBACK_START_PATTERN.match(line):
+            in_python_traceback = True
+            continue
+        if in_python_traceback:
+            if _PYTHON_TRACEBACK_TERMINAL_PATTERN.fullmatch(line):
+                in_python_traceback = False
+            continue
+        if re.match(r"^\s*>", line) or _LOG_LINE_PATTERN.match(line):
+            continue
+        visible.append(line)
+    return visible
+
+
 def _candidate_text(prompt: str) -> str:
     """Keep direct prose and discard stable quoted, code, and pasted-log forms."""
     text = _without_fenced_blocks(prompt)
     for pattern in _INLINE_QUOTE_PATTERNS:
         text = pattern.sub(" ", text)
-    lines = [
-        line
-        for line in text.splitlines()
-        if not re.match(r"^\s*>", line) and not _LOG_LINE_PATTERN.match(line)
-    ]
+    text = text.translate(_SMART_APOSTROPHE_TRANSLATION)
+    lines = _visible_prose_lines(text)
     clauses = _split_clauses("\n".join(lines))
     return "\n".join(
         clause.strip()
@@ -172,11 +193,11 @@ def _is_attribution_only_clause(clause: str) -> bool:
     attribution = _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
     if attribution is None:
         return False
-    direct_feedback_before_attribution = any(
+    explicit_signal_before_attribution = any(
         match.end() <= attribution.start()
-        for match in _non_hypothetical_matches(clause, _DIRECT_CORRECTION_PATTERNS)
+        for match in _non_hypothetical_matches(clause, _EXPLICIT_SIGNAL_PATTERNS)
     )
-    return not direct_feedback_before_attribution
+    return not explicit_signal_before_attribution
 
 
 def _has_direct_correction(clause: str) -> bool:

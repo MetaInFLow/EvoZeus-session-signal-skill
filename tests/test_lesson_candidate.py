@@ -35,11 +35,13 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "请看上下文\n不对",
         "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
         "以后每次提交前都必须运行完整回归并检查 diff。",
+        "以后每次都必须检查客户说的回滚要求。",
         "以后每次提交前都必须跑测试，是否可以？",
         "以后每次都必须跑测试，可以吗？",
         "你引用的文件有误，请更正。",
         "Your answer is wrong; you missed the rollback requirement.",
         "I'm not satisfied; you didn't follow the requirement.",
+        "I’m not satisfied; you did not follow the requirement.",
         "From now on, always check the release boundary before tagging.",
         "From now on, always run tests, is that okay?",
         "Someone said the old answer was acceptable. Your answer is wrong.",
@@ -50,6 +52,11 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "客户说旧版才是对的，但这个结果不对。",
         "If cost permits, from now on always run tests.",
         "假设只讨论预算，今后每次都必须检查 diff。",
+        (
+            'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
+            "AssertionError: your answer is wrong\n"
+            "Your answer is wrong; you missed the rollback requirement."
+        ),
     ],
 )
 def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> None:
@@ -114,6 +121,13 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "Someone said your answer is wrong. Please summarize that feedback.",
         "Someone said e.g. your answer is wrong; summarize the quoted example.",
         "Someone said i.e. this result is wrong. Please summarize the wording.",
+        "客户说以后每次都必须检查测试，请总结这条规则。",
+        "Someone wrote: “I’m not satisfied”; summarize the quotation.",
+        (
+            'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
+            "    assert answer == expected\nAssertionError: your answer is wrong\n"
+            "请分析这段 traceback。"
+        ),
     ],
 )
 def test_quoted_code_log_and_attributed_corrections_do_not_trigger(prompt: str) -> None:

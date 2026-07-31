@@ -24,6 +24,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Replaced the component checksum attachment with a method/API-only contract.
 - Required an explicit target inventory field and preserved lowercase English corrections after attributed sentences.
 - Added deterministic attribution scope parsing with `e.g.` / `i.e.` handling and direct-feedback precedence.
+- Extended scope parsing to durable rules, smart apostrophes, and complete unfenced Python traceback blocks.
 
 ## [v0.1.0] - 2026-07-26
 
