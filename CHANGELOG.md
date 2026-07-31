@@ -26,6 +26,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Added deterministic attribution scope parsing with `e.g.` / `i.e.` handling and direct-feedback precedence.
 - Extended scope parsing to durable rules, smart apostrophes, and complete unfenced Python traceback blocks.
 - Classified pure correction questions, nominal attribution objects, and arbitrary qualified Python exception terminals.
+- Added explicit fix-request tails and standalone qualified exception-line filtering.
 
 ## [v0.1.0] - 2026-07-26
 

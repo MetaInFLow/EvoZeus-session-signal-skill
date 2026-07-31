@@ -51,6 +51,8 @@ _AMBIGUOUS_QUESTION_PATTERNS = tuple(
 )
 _CONFIRMATION_TAIL_PATTERN = re.compile(
     r"[,，;；]\s*(?:可以吗|行吗|好吗|这样(?:可以|行)吗|"
+    r"(?:你)?(?:能|可以|可否)(?:帮我)?(?:补上|修复|更正|改正|重做)吗|"
+    r"can you (?:fix|correct|add|restore|redo) (?:it|this|that)|"
     r"is that (?:ok(?:ay)?|acceptable)|does that (?:work|sound right))"
     r"\s*[?？][\"'”’）)]*\s*$",
     re.IGNORECASE,
@@ -150,7 +152,11 @@ def _visible_prose_lines(text: str) -> list[str]:
             if _PYTHON_TRACEBACK_TERMINAL_PATTERN.fullmatch(line):
                 in_python_traceback = False
             continue
-        if re.match(r"^\s*>", line) or _LOG_LINE_PATTERN.match(line):
+        if (
+            re.match(r"^\s*>", line)
+            or _LOG_LINE_PATTERN.match(line)
+            or _PYTHON_TRACEBACK_TERMINAL_PATTERN.fullmatch(line)
+        ):
             continue
         visible.append(line)
     return visible
