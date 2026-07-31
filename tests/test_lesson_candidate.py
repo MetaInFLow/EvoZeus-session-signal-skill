@@ -33,6 +33,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "你漏检了现有 PR 的阻塞评论，请补上。",
         "你漏检了回滚要求，是否可以补上？",
         "请看上下文\n不对",
+        "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
         "以后每次提交前都必须运行完整回归并检查 diff。",
         "Your answer is wrong; you missed the rollback requirement.",
         "From now on, always check the release boundary before tagging.",
@@ -52,6 +53,7 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "Should this answer be considered incorrect?",
         "以后应该怎么做？",
         "帮我检查 PR 状态。",
+        "请帮我发现并修复这个 bug。",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
