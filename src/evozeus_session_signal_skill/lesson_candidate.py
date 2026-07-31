@@ -30,7 +30,8 @@ _DIRECT_CORRECTION_PATTERNS = tuple(
         r"\b(?:this|that|the result|your answer)\s+(?:is|was)\s+(?:wrong|incorrect)\b",
         r"\bthis\s+(?:should|must)\s+be\s+(?:corrected|fixed)\b",
         r"\bi(?:'m| am) not satisfied\b",
-        r"\byou missed\s+(?:a|the)?\s*(?:requirement|constraint|instruction|step|status|issue|bug|record|fact)\b",
+        r"\byou missed\s+(?:a|the)?\s*(?:[a-z0-9_-]+\s+){0,4}"
+        r"(?:requirement|constraint|instruction|step|status|issue|bug|record|fact)\b",
     )
 )
 _DURABLE_RULE_PATTERNS = tuple(
@@ -42,6 +43,7 @@ _DURABLE_RULE_PATTERNS = tuple(
 )
 _EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
 _QUESTION_END_PATTERN = re.compile(r"(?:[?？]|[吗么呢][\"'”’）)]*)\s*$")
+_QUESTION_PREFIX_BOUNDARY_PATTERN = re.compile(r"[:：]")
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FENCE_OPEN_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[^\r\n]*$")
 _FENCE_CLOSE_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[ \t]*$")
@@ -76,10 +78,12 @@ _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     r"\b(?:he|she|they|the user|the customer|someone)\s+(?:said|wrote|reported)\b)",
     re.IGNORECASE,
 )
+_LOG_LEVEL_TEXT = r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)"
+_LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+)"
 _LOG_LINE_PATTERN = re.compile(
-    r"^\s*(?:\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+\s+|"
-    r"\[(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)\][ \t]*|"
-    r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)\b|"
+    rf"^\s*(?:{_LOG_TIMESTAMP_TEXT}[ \t]+(?:\[{_LOG_LEVEL_TEXT}\][ \t]*)?|"
+    rf"\[{_LOG_LEVEL_TEXT}\][ \t]*|"
+    rf"{_LOG_LEVEL_TEXT}\b|"
     r"Traceback\b|File \"|Exception\b|at\s+\S+)",
     re.IGNORECASE,
 )
@@ -200,6 +204,10 @@ def _has_durable_rule(clause: str) -> bool:
     return _has_non_hypothetical_match(clause, _DURABLE_RULE_PATTERNS)
 
 
+def _has_explicit_signal(clause: str) -> bool:
+    return _has_direct_correction(clause) or _has_durable_rule(clause)
+
+
 def is_lesson_candidate(prompt: str) -> bool:
     """Return whether one direct user turn carries a high-precision Lesson signal."""
     clauses = [
@@ -209,6 +217,14 @@ def is_lesson_candidate(prompt: str) -> bool:
     ]
     for clause in clauses:
         if _QUESTION_END_PATTERN.search(clause):
+            for boundary in _QUESTION_PREFIX_BOUNDARY_PATTERN.finditer(clause):
+                explicit_prefix = clause[: boundary.start()].rstrip()
+                if (
+                    explicit_prefix
+                    and not _QUESTION_END_PATTERN.search(explicit_prefix)
+                    and _has_explicit_signal(explicit_prefix)
+                ):
+                    return True
             continue
         if _has_direct_correction(clause):
             return True

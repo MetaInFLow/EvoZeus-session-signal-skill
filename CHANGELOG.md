@@ -28,6 +28,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Classified pure correction questions, nominal attribution objects, and arbitrary qualified Python exception terminals.
 - Added explicit fix-request tails and standalone qualified exception-line filtering.
 - Made ordinary commas first-class evidence-scope boundaries and recognized bracketed log levels.
+- Added modifier-qualified English miss objects, colon question prefixes, and timestamp-plus-level log headers.
 
 ## [v0.1.0] - 2026-07-26
 
