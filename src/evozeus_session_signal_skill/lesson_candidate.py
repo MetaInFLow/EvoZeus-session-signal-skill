@@ -83,7 +83,7 @@ _INLINE_QUOTE_PATTERNS = tuple(
     )
 )
 _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
-    r"(?:他说|她说|用户说|客户说|对方说|别人说|转述|"
+    r"(?:(?:他|她|用户|客户|对方|别人)说(?!的)|转述|"
     r"引用(?:(?:内容|原文)?如下|内容|原文)[ \t]*[：:,，]|日志.{0,8}(?:写|显示)|"
     r"\b(?:he|she|they|the user|the customer|someone)\s+(?:said|wrote|reported)\b)",
     re.IGNORECASE,
@@ -96,8 +96,7 @@ _LOG_LINE_PATTERN = re.compile(
 )
 _PYTHON_TRACEBACK_START_PATTERN = re.compile(r"^\s*Traceback\b", re.IGNORECASE)
 _PYTHON_TRACEBACK_TERMINAL_PATTERN = re.compile(
-    r"^\s*(?:[A-Za-z_][\w.]*(?:Error|Exception|Warning)|"
-    r"KeyboardInterrupt|SystemExit)(?::.*)?\s*$"
+    r"^(?![ \t])[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?::.*)?[ \t]*$"
 )
 _SMART_APOSTROPHE_TRANSLATION = str.maketrans({"‘": "'", "’": "'"})
 
@@ -235,10 +234,10 @@ def is_lesson_candidate(prompt: str) -> bool:
             if explicit_prefix and _has_explicit_signal(explicit_prefix):
                 return True
             continue
-        if _has_direct_correction(clause):
-            return True
         if re.search(r"[?？][\"'”’）)]*\s*$", clause):
             continue
+        if _has_direct_correction(clause):
+            return True
         if _has_durable_rule(clause):
             return True
     return False

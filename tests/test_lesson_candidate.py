@@ -31,6 +31,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "这个结果不对，遗漏了用户明确给出的验收标准。",
         "你漏检了现有 PR 的阻塞评论，请补上。",
         "你漏检了客户说的回滚要求，请补上。",
+        "客户说的回滚要求你漏检了，请补上。",
         "你漏检了回滚要求，是否可以补上？",
         "请看上下文\n不对",
         "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
@@ -40,6 +41,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "以后每次都必须跑测试，可以吗？",
         "你引用的文件有误，请更正。",
         "Your answer is wrong; you missed the rollback requirement.",
+        "This should be fixed; can you fix it?",
         "I'm not satisfied; you didn't follow the requirement.",
         "I’m not satisfied; you did not follow the requirement.",
         "From now on, always check the release boundary before tagging.",
@@ -56,6 +58,10 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
             'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
             "AssertionError: your answer is wrong\n"
             "Your answer is wrong; you missed the rollback requirement."
+        ),
+        (
+            'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
+            "__main__.Oops: bad\nYour answer is wrong."
         ),
     ],
 )
@@ -82,6 +88,9 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "Please rerun when the result is incorrect.",
         "假设今后每次都必须检查 diff，我们需要评估成本。",
         "If from now on we must always run tests, update the estimate.",
+        "你漏检了这个要求吗？",
+        "这是漏检吗？",
+        "This should be fixed?",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
@@ -126,6 +135,11 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         (
             'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
             "    assert answer == expected\nAssertionError: your answer is wrong\n"
+            "请分析这段 traceback。"
+        ),
+        (
+            'Traceback (most recent call last):\n  File "test.py", line 1, in <module>\n'
+            "    raise Oops('bad')\n__main__.Oops: your answer is wrong\n"
             "请分析这段 traceback。"
         ),
     ],

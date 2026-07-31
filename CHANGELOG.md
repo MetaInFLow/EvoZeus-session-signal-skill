@@ -25,6 +25,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Required an explicit target inventory field and preserved lowercase English corrections after attributed sentences.
 - Added deterministic attribution scope parsing with `e.g.` / `i.e.` handling and direct-feedback precedence.
 - Extended scope parsing to durable rules, smart apostrophes, and complete unfenced Python traceback blocks.
+- Classified pure correction questions, nominal attribution objects, and arbitrary qualified Python exception terminals.
 
 ## [v0.1.0] - 2026-07-26
 
