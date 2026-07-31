@@ -19,6 +19,7 @@ The component attachment declares the intended next component version `v0.1.1`; 
 - Preserved a durable rule that is followed by a confirmation question in the same clause.
 - Excluded hypothetical corrections inside Chinese and English conditional clauses while preserving direct corrections outside their scope.
 - Removed Markdown fenced blocks using same-character fences of three or more markers and closers at least as long as their opener.
+- Preserved direct corrections after an English full-stop attribution clause and durable rules before a separate Chinese or English confirmation tail.
 
 ## [v0.1.0] - 2026-07-26
 

@@ -37,7 +37,7 @@ _DURABLE_RULE_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
         r"(?:以后|今后|下次|每次|永远|始终|所有用户).{0,36}(?:记住|记得|必须|务必|不能|不要|不得|应该(?:先|每次|自动|统一|检查|核对|展示|记录|提示)|需要(?:先|每次|自动|统一|检查|核对|展示|记录|提示)|统一(?:使用|检查|展示|记录|处理)|自动(?:检查|捕捉|记录|识别|更新))",
-        r"\b(?:from now on|every time|always|for all users).{0,50}(?:must|remember|check|hide|show|ask|record|never|do not)\b",
+        r"\b(?:from now on|every time|always|for all users).{0,50}(?:must|remember|check|hide|show|ask|record|run|execute|never|do not)\b",
     )
 )
 _AMBIGUOUS_QUESTION_PATTERNS = tuple(
@@ -47,6 +47,12 @@ _AMBIGUOUS_QUESTION_PATTERNS = tuple(
         r"(?:不对|错了|有误)吗[?？][\"'”’）)]*\s*$",
         r"\b(?:is|was|could|would|should|can)\b.{0,80}\b(?:wrong|incorrect|a bug)\b[?]\s*$",
     )
+)
+_CONFIRMATION_TAIL_PATTERN = re.compile(
+    r"[,，;；]\s*(?:可以吗|行吗|好吗|这样(?:可以|行)吗|"
+    r"is that (?:ok(?:ay)?|acceptable)|does that (?:work|sound right))"
+    r"\s*[?？][\"'”’）)]*\s*$",
+    re.IGNORECASE,
 )
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FENCE_OPEN_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[^\r\n]*$")
@@ -113,7 +119,10 @@ def _candidate_text(prompt: str) -> str:
         for line in text.splitlines()
         if not re.match(r"^\s*>", line) and not _LOG_LINE_PATTERN.match(line)
     ]
-    clauses = re.split(r"(?<=[。！？!?；;])[^\S\r\n]*|\r?\n+", "\n".join(lines))
+    clauses = re.split(
+        r"(?<=[。！？!?；;])[^\S\r\n]*|(?<=\.)[ \t]+(?=[A-Z\u3400-\u9fff])|\r?\n+",
+        "\n".join(lines),
+    )
     return "\n".join(
         clause.strip()
         for clause in clauses
@@ -130,6 +139,12 @@ def _has_direct_correction(clause: str) -> bool:
     return False
 
 
+def _has_explicit_signal(clause: str) -> bool:
+    return _has_direct_correction(clause) or any(
+        pattern.search(clause) for pattern in _DURABLE_RULE_PATTERNS
+    )
+
+
 def is_lesson_candidate(prompt: str) -> bool:
     """Return whether one direct user turn carries a high-precision Lesson signal."""
     clauses = [
@@ -144,10 +159,13 @@ def is_lesson_candidate(prompt: str) -> bool:
         )
         if ambiguous:
             explicit_prefix = clause[: ambiguous.start()].rstrip(" ，,：:")
-            if explicit_prefix and (
-                _has_direct_correction(explicit_prefix)
-                or any(pattern.search(explicit_prefix) for pattern in _DURABLE_RULE_PATTERNS)
-            ):
+            if explicit_prefix and _has_explicit_signal(explicit_prefix):
+                return True
+            continue
+        confirmation = _CONFIRMATION_TAIL_PATTERN.search(clause)
+        if confirmation:
+            explicit_prefix = clause[: confirmation.start()].rstrip(" ，,：:")
+            if explicit_prefix and _has_explicit_signal(explicit_prefix):
                 return True
             continue
         if _has_direct_correction(clause):

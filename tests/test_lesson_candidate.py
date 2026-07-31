@@ -36,10 +36,13 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
         "以后每次提交前都必须运行完整回归并检查 diff。",
         "以后每次提交前都必须跑测试，是否可以？",
+        "以后每次都必须跑测试，可以吗？",
         "你引用的文件有误，请更正。",
         "Your answer is wrong; you missed the rollback requirement.",
         "I'm not satisfied; you didn't follow the requirement.",
         "From now on, always check the release boundary before tagging.",
+        "From now on, always run tests, is that okay?",
+        "Someone said the old answer was acceptable. Your answer is wrong.",
     ],
 )
 def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> None:
@@ -57,6 +60,8 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "以后应该怎么做？",
         "帮我检查 PR 状态。",
         "请帮我发现并修复这个 bug。",
+        "以后每次都必须跑测试吗？",
+        "From now on, always check tests?",
         "如果这个结果不对，请重新运行。",
         "假如你的回答错了，请重新运行。",
         "If your answer is wrong, rerun it.",
@@ -97,6 +102,7 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "ERROR your answer is wrong\n请分析这段日志。",
         "客户说这个结果错了，请帮我归纳客户原话。",
         "Someone said your answer is wrong; summarize their feedback.",
+        "Someone said your answer is wrong. Please summarize that feedback.",
     ],
 )
 def test_quoted_code_log_and_attributed_corrections_do_not_trigger(prompt: str) -> None:
