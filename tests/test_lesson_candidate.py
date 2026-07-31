@@ -31,6 +31,8 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
     [
         "这个结果不对，遗漏了用户明确给出的验收标准。",
         "你漏检了现有 PR 的阻塞评论，请补上。",
+        "你漏检了回滚要求，是否可以补上？",
+        "请看上下文\n不对",
         "以后每次提交前都必须运行完整回归并检查 diff。",
         "Your answer is wrong; you missed the rollback requirement.",
         "From now on, always check the release boundary before tagging.",

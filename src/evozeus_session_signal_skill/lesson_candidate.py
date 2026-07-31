@@ -83,8 +83,8 @@ def _candidate_text(prompt: str) -> str:
         for line in text.splitlines()
         if not re.match(r"^\s*>", line) and not _LOG_LINE_PATTERN.match(line)
     ]
-    clauses = re.split(r"(?<=[。！？!?；;])\s*", "\n".join(lines))
-    return " ".join(
+    clauses = re.split(r"(?<=[。！？!?；;])[^\S\r\n]*|\r?\n+", "\n".join(lines))
+    return "\n".join(
         clause.strip()
         for clause in clauses
         if clause.strip() and not _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
@@ -93,14 +93,30 @@ def _candidate_text(prompt: str) -> str:
 
 def is_lesson_candidate(prompt: str) -> bool:
     """Return whether one direct user turn carries a high-precision Lesson signal."""
-    normalized = " ".join(_candidate_text(prompt).split())
-    if not normalized or any(pattern.search(normalized) for pattern in _AMBIGUOUS_QUESTION_PATTERNS):
-        return False
-    if any(pattern.search(normalized) for pattern in _DIRECT_CORRECTION_PATTERNS):
-        return True
-    if re.search(r"[?？][\"'”’）)]*\s*$", normalized):
-        return False
-    return any(pattern.search(normalized) for pattern in _DURABLE_RULE_PATTERNS)
+    clauses = [
+        " ".join(clause.split())
+        for clause in _candidate_text(prompt).splitlines()
+        if clause.strip()
+    ]
+    for clause in clauses:
+        ambiguous = next(
+            (match for pattern in _AMBIGUOUS_QUESTION_PATTERNS if (match := pattern.search(clause))),
+            None,
+        )
+        if ambiguous:
+            explicit_prefix = clause[: ambiguous.start()].rstrip(" ，,：:")
+            if explicit_prefix and any(
+                pattern.search(explicit_prefix) for pattern in _DIRECT_CORRECTION_PATTERNS
+            ):
+                return True
+            continue
+        if any(pattern.search(clause) for pattern in _DIRECT_CORRECTION_PATTERNS):
+            return True
+        if re.search(r"[?？][\"'”’）)]*\s*$", clause):
+            continue
+        if any(pattern.search(clause) for pattern in _DURABLE_RULE_PATTERNS):
+            return True
+    return False
 
 
 def _valid_target(value: object) -> dict[str, object] | None:
