@@ -27,6 +27,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Extended scope parsing to durable rules, smart apostrophes, and complete unfenced Python traceback blocks.
 - Classified pure correction questions, nominal attribution objects, and arbitrary qualified Python exception terminals.
 - Added explicit fix-request tails and standalone qualified exception-line filtering.
+- Made ordinary commas first-class evidence-scope boundaries and recognized bracketed log levels.
 
 ## [v0.1.0] - 2026-07-26
 

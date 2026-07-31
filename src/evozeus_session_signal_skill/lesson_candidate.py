@@ -41,22 +41,7 @@ _DURABLE_RULE_PATTERNS = tuple(
     )
 )
 _EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
-_AMBIGUOUS_QUESTION_PATTERNS = tuple(
-    re.compile(pattern, re.IGNORECASE)
-    for pattern in (
-        r"(?:是不是|是否|对不对|有没有|会不会|可不可以|能不能).{0,80}[?？][\"'”’）)]*\s*$",
-        r"(?:不对|错了|有误)吗[?？][\"'”’）)]*\s*$",
-        r"\b(?:is|was|could|would|should|can)\b.{0,80}\b(?:wrong|incorrect|a bug)\b[?]\s*$",
-    )
-)
-_CONFIRMATION_TAIL_PATTERN = re.compile(
-    r"[,，;；]\s*(?:可以吗|行吗|好吗|这样(?:可以|行)吗|"
-    r"(?:你)?(?:能|可以|可否)(?:帮我)?(?:补上|修复|更正|改正|重做)吗|"
-    r"can you (?:fix|correct|add|restore|redo) (?:it|this|that)|"
-    r"is that (?:ok(?:ay)?|acceptable)|does that (?:work|sound right))"
-    r"\s*[?？][\"'”’）)]*\s*$",
-    re.IGNORECASE,
-)
+_QUESTION_END_PATTERN = re.compile(r"(?:[?？]|[吗么呢][\"'”’）)]*)\s*$")
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FENCE_OPEN_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[^\r\n]*$")
 _FENCE_CLOSE_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[ \t]*$")
@@ -66,6 +51,7 @@ _HYPOTHETICAL_CUE_PATTERN = re.compile(
 )
 _BASE_CLAUSE_BOUNDARY_PATTERN = re.compile(
     r"(?<=[。！？!?；;])[^\S\r\n]*|"
+    r"[,，][ \t]*|"
     r"(?:[,，][ \t]*)?(?=(?:但(?:是)?|不过|然而|可是))|"
     r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)|\r?\n+"
 )
@@ -92,6 +78,7 @@ _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
 )
 _LOG_LINE_PATTERN = re.compile(
     r"^\s*(?:\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+\s+|"
+    r"\[(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)\][ \t]*|"
     r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)\b|"
     r"Traceback\b|File \"|Exception\b|at\s+\S+)",
     re.IGNORECASE,
@@ -213,10 +200,6 @@ def _has_durable_rule(clause: str) -> bool:
     return _has_non_hypothetical_match(clause, _DURABLE_RULE_PATTERNS)
 
 
-def _has_explicit_signal(clause: str) -> bool:
-    return _has_direct_correction(clause) or _has_durable_rule(clause)
-
-
 def is_lesson_candidate(prompt: str) -> bool:
     """Return whether one direct user turn carries a high-precision Lesson signal."""
     clauses = [
@@ -225,22 +208,7 @@ def is_lesson_candidate(prompt: str) -> bool:
         if clause.strip()
     ]
     for clause in clauses:
-        ambiguous = next(
-            (match for pattern in _AMBIGUOUS_QUESTION_PATTERNS if (match := pattern.search(clause))),
-            None,
-        )
-        if ambiguous:
-            explicit_prefix = clause[: ambiguous.start()].rstrip(" ，,：:")
-            if explicit_prefix and _has_explicit_signal(explicit_prefix):
-                return True
-            continue
-        confirmation = _CONFIRMATION_TAIL_PATTERN.search(clause)
-        if confirmation:
-            explicit_prefix = clause[: confirmation.start()].rstrip(" ，,：:")
-            if explicit_prefix and _has_explicit_signal(explicit_prefix):
-                return True
-            continue
-        if re.search(r"[?？][\"'”’）)]*\s*$", clause):
+        if _QUESTION_END_PATTERN.search(clause):
             continue
         if _has_direct_correction(clause):
             return True

@@ -34,6 +34,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "客户说的回滚要求你漏检了，请补上。",
         "你漏检了回滚要求，是否可以补上？",
         "你漏检了这个要求，能补上吗？",
+        "你漏检了回滚要求，怎么回事？",
         "请看上下文\n不对",
         "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
         "以后每次提交前都必须运行完整回归并检查 diff。",
@@ -43,6 +44,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "你引用的文件有误，请更正。",
         "Your answer is wrong; you missed the rollback requirement.",
         "Your answer is wrong, can you fix it?",
+        "Your answer is wrong, why did this happen?",
         "This should be fixed; can you fix it?",
         "I'm not satisfied; you didn't follow the requirement.",
         "I’m not satisfied; you did not follow the requirement.",
@@ -52,8 +54,10 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "Someone said the old answer was acceptable. your answer is wrong.",
         "Your answer is wrong, but someone said the old answer was acceptable.",
         "Someone said the old answer was acceptable, but your answer is wrong.",
+        "Someone said the old answer was okay, your answer is wrong.",
         "这个结果不对，但客户说旧版才是对的。",
         "客户说旧版才是对的，但这个结果不对。",
+        "客户说旧版没问题，你的结果不对。",
         "If cost permits, from now on always run tests.",
         "假设只讨论预算，今后每次都必须检查 diff。",
         (
@@ -66,6 +70,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
             "__main__.Oops: bad\nYour answer is wrong."
         ),
         "AssertionError: quoted failure\nYour answer is wrong.",
+        "[ERROR] quoted failure\nYour answer is wrong.",
     ],
 )
 def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> None:
@@ -94,6 +99,7 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "你漏检了这个要求吗？",
         "这是漏检吗？",
         "This should be fixed?",
+        "你漏检了这个要求吗，能补上吗？",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:
@@ -146,6 +152,7 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
             "请分析这段 traceback。"
         ),
         "AssertionError: your answer is wrong\n请分析这条异常日志。",
+        "[ERROR] your answer is wrong\n请分析这条日志。",
     ],
 )
 def test_quoted_code_log_and_attributed_corrections_do_not_trigger(prompt: str) -> None:
