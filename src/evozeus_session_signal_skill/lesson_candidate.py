@@ -36,12 +36,35 @@ _DIRECT_CORRECTION_PATTERNS = tuple(
         r"(?:requirement|constraint|instruction|step|status|issue|bug|record|fact)\b",
     )
 )
-_DURABLE_RULE_PATTERNS = tuple(
-    re.compile(pattern, re.IGNORECASE)
-    for pattern in (
-        r"(?:以后|今后|下次|每次|永远|始终|所有用户).{0,36}(?:记住|记得|必须|务必|不能|不要|不得|应该(?:先|每次|自动|统一|检查|核对|展示|记录|提示)|需要(?:先|每次|自动|统一|检查|核对|展示|记录|提示)|统一(?:使用|检查|展示|记录|处理)|自动(?:检查|捕捉|记录|识别|更新))",
-        r"\b(?:from now on|every time|always|for all users).{0,50}(?:must|remember|check|hide|show|ask|record|run|execute|never|do not)\b",
-    )
+_CHINESE_DURABLE_SCOPE_TEXT = r"(?:以后|今后|下次|每次|永远|始终|所有用户)"
+_CHINESE_DURABLE_ACTION_TEXT = (
+    r"(?:记住|记得|必须|务必|不能|不要|不得|"
+    r"应该(?:先|每次|自动|统一|检查|核对|展示|记录|提示)|"
+    r"需要(?:先|每次|自动|统一|检查|核对|展示|记录|提示)|"
+    r"统一(?:使用|检查|展示|记录|处理)|"
+    r"自动(?:检查|捕捉|记录|识别|更新))"
+)
+_ENGLISH_DURABLE_SCOPE_TEXT = r"(?:from now on|every time|always|for all users)"
+_ENGLISH_DURABLE_ACTION_TEXT = (
+    r"(?:must|remember|check|hide|show|ask|record|run|execute|never|do not)"
+)
+_DURABLE_RULE_PATTERNS = (
+    re.compile(
+        rf"{_CHINESE_DURABLE_SCOPE_TEXT}.{{0,36}}{_CHINESE_DURABLE_ACTION_TEXT}",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        rf"\b{_ENGLISH_DURABLE_SCOPE_TEXT}.{{0,50}}"
+        rf"{_ENGLISH_DURABLE_ACTION_TEXT}\b",
+        re.IGNORECASE,
+    ),
+)
+_DURABLE_SCOPE_COMMA_PATTERN = re.compile(
+    rf"(?P<scope>(?:{_CHINESE_DURABLE_SCOPE_TEXT}|"
+    rf"\b{_ENGLISH_DURABLE_SCOPE_TEXT}\b)[^,，。！？!?；;\r\n]{{0,50}})"
+    rf"[,，][ \t]*(?=(?:(?:都|也)[ \t]*)?{_CHINESE_DURABLE_ACTION_TEXT}|"
+    rf"(?:(?:always|please)[ \t]+)*{_ENGLISH_DURABLE_ACTION_TEXT}\b)",
+    re.IGNORECASE,
 )
 _EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
 _QUESTION_END_PATTERN = re.compile(r"(?:[?？]|[吗么呢][\"'”’）)]*)\s*$")
@@ -86,6 +109,16 @@ _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     r"\b(?:he|she|they|the user|the customer|someone)\s+(?:said|wrote|reported)\b)",
     re.IGNORECASE,
 )
+_GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
+    r"(?:^|[，,；;。！？!?\s])(?!(?:我|我们|咱们|你|你们))"
+    r"[\u3400-\u9fffA-Za-z][\u3400-\u9fffA-Za-z0-9_.·-]{0,23}"
+    r"(?:说(?!的)|表示|指出|认为|称|报告|反馈)|"
+    r"(?:^|[,;.!?][ \t]*)(?!(?:i|we|you)\b)"
+    r"(?:(?:the|a|an)[ \t]+)?[a-z][a-z0-9_.-]*"
+    r"(?:[ \t]+[a-z][a-z0-9_.-]*){0,3}[ \t]+"
+    r"(?:said|wrote|reported|noted|stated|claimed|thought|thinks?)\b",
+    re.IGNORECASE,
+)
 _LOG_LEVEL_TEXT = r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)"
 _LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.,+-]+)"
 _LOG_LINE_PATTERN = re.compile(
@@ -127,6 +160,7 @@ def _without_fenced_blocks(text: str) -> str:
 
 
 def _split_clauses(text: str) -> list[str]:
+    text = _DURABLE_SCOPE_COMMA_PATTERN.sub(r"\g<scope> ", text)
     clauses: list[str] = []
     for sentence_clause in _SENTENCE_BOUNDARY_PATTERN.split(text):
         intra_sentence_clauses = (
@@ -206,9 +240,17 @@ def _has_non_hypothetical_match(clause: str, patterns: tuple[re.Pattern[str], ..
 
 
 def _is_attribution_only_clause(clause: str) -> bool:
-    attribution = _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
-    if attribution is None:
+    attributions = [
+        match
+        for pattern in (
+            _ATTRIBUTED_CLAUSE_PATTERN,
+            _GENERIC_ATTRIBUTED_CLAUSE_PATTERN,
+        )
+        if (match := pattern.search(clause)) is not None
+    ]
+    if not attributions:
         return False
+    attribution = min(attributions, key=lambda match: match.start())
     explicit_signal_before_attribution = any(
         match.end() <= attribution.start()
         for match in _non_hypothetical_matches(clause, _EXPLICIT_SIGNAL_PATTERNS)

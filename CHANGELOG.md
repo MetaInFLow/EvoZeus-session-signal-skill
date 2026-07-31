@@ -33,6 +33,8 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Limited choice-question scope to self-doubt forms before comma or semicolon splitting.
 - Recognized comma-delimited fractional seconds in pasted log timestamps.
 - Stopped inferring unregistered repository basenames as target aliases.
+- Preserved durable scope and action across natural Chinese and English comma clauses.
+- Generalized reporting-verb attribution to named sources and caller-defined roles.
 
 ## [v0.1.0] - 2026-07-26
 
