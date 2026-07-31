@@ -46,8 +46,9 @@ _DURABLE_RULE_PATTERNS = tuple(
 _EXPLICIT_SIGNAL_PATTERNS = _DIRECT_CORRECTION_PATTERNS + _DURABLE_RULE_PATTERNS
 _QUESTION_END_PATTERN = re.compile(r"(?:[?？]|[吗么呢][\"'”’）)]*)\s*$")
 _QUESTION_PREFIX_BOUNDARY_PATTERN = re.compile(r"[:：]")
-_CHOICE_QUESTION_PATTERN = re.compile(
-    r"(?:还是|\bor\b).*[?？][\"'”’）)]*\s*$",
+_SELF_DOUBT_QUESTION_PATTERN = re.compile(
+    r"(?:还是(?:我|我们)|\bor\s+(?:(?:am|did|do|have|was)\s+i|"
+    r"(?:are|did|do|have|were)\s+we)\b).*[?？][\"'”’）)]*\s*$",
     re.IGNORECASE,
 )
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -57,10 +58,11 @@ _HYPOTHETICAL_CUE_PATTERN = re.compile(
     r"(?:如果|假如|假设|若(?:是|果)?|倘若|万一|(?<![\w])(?:if|when)(?![\w]))",
     re.IGNORECASE,
 )
-_BASE_CLAUSE_BOUNDARY_PATTERN = re.compile(
-    r"(?<=[。！？!?；;])[^\S\r\n]*|"
+_SENTENCE_BOUNDARY_PATTERN = re.compile(r"(?<=[。！？!?])[^\S\r\n]*|\r?\n+")
+_INTRA_SENTENCE_BOUNDARY_PATTERN = re.compile(
+    r"(?<=[；;])[^\S\r\n]*|"
     r"(?:[,，][ \t]*)?(?=(?:但(?:是)?|不过|然而|可是))|"
-    r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)|\r?\n+"
+    r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)"
 )
 _COMMA_CLAUSE_BOUNDARY_PATTERN = re.compile(r"[,，][ \t]*")
 _ENGLISH_PERIOD_BOUNDARY_PATTERN = re.compile(
@@ -126,21 +128,27 @@ def _without_fenced_blocks(text: str) -> str:
 
 def _split_clauses(text: str) -> list[str]:
     clauses: list[str] = []
-    for sentence_clause in _BASE_CLAUSE_BOUNDARY_PATTERN.split(text):
-        comma_clauses = (
+    for sentence_clause in _SENTENCE_BOUNDARY_PATTERN.split(text):
+        intra_sentence_clauses = (
             [sentence_clause]
-            if _CHOICE_QUESTION_PATTERN.search(sentence_clause)
-            else _COMMA_CLAUSE_BOUNDARY_PATTERN.split(sentence_clause)
+            if _SELF_DOUBT_QUESTION_PATTERN.search(sentence_clause)
+            else _INTRA_SENTENCE_BOUNDARY_PATTERN.split(sentence_clause)
         )
-        for base_clause in comma_clauses:
-            cursor = 0
-            for boundary in _ENGLISH_PERIOD_BOUNDARY_PATTERN.finditer(base_clause):
-                preceding = base_clause[: boundary.start() + 1].rstrip().casefold()
-                if preceding.endswith(_ENGLISH_ABBREVIATIONS):
-                    continue
-                clauses.append(base_clause[cursor : boundary.start() + 1])
-                cursor = boundary.end()
-            clauses.append(base_clause[cursor:])
+        for intra_sentence_clause in intra_sentence_clauses:
+            comma_clauses = (
+                [intra_sentence_clause]
+                if _SELF_DOUBT_QUESTION_PATTERN.search(intra_sentence_clause)
+                else _COMMA_CLAUSE_BOUNDARY_PATTERN.split(intra_sentence_clause)
+            )
+            for base_clause in comma_clauses:
+                cursor = 0
+                for boundary in _ENGLISH_PERIOD_BOUNDARY_PATTERN.finditer(base_clause):
+                    preceding = base_clause[: boundary.start() + 1].rstrip().casefold()
+                    if preceding.endswith(_ENGLISH_ABBREVIATIONS):
+                        continue
+                    clauses.append(base_clause[cursor : boundary.start() + 1])
+                    cursor = boundary.end()
+                clauses.append(base_clause[cursor:])
     return clauses
 
 

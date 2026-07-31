@@ -51,6 +51,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "You missed the rollback requirement.",
         "Your answer is wrong, can you fix it?",
         "Your answer is wrong, why did this happen?",
+        "Your answer is wrong, can you fix it or explain why?",
         "Your answer is wrong: can you fix it?",
         "This should be fixed; can you fix it?",
         "I'm not satisfied; you didn't follow the requirement.",
@@ -111,6 +112,8 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "你漏检了这个要求吗，能补上吗？",
         "是你漏检了回滚要求，还是我理解错了？",
         "Your answer is wrong, or am I misunderstanding it?",
+        "Your answer is wrong; or am I misunderstanding it?",
+        "是你漏检了回滚要求；还是我理解错了？",
     ],
 )
 def test_neutral_and_ambiguous_prompts_do_not_trigger(prompt: str) -> None:

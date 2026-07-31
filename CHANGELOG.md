@@ -30,6 +30,7 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Made ordinary commas first-class evidence-scope boundaries and recognized bracketed log levels.
 - Added modifier-qualified English miss objects, colon question prefixes, and timestamp-plus-level log headers.
 - Preserved sentence-level choice-question scope, tightened Java stack frames, and added common answer subjects.
+- Limited choice-question scope to self-doubt forms before comma or semicolon splitting.
 
 ## [v0.1.0] - 2026-07-26
 
