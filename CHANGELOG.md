@@ -31,6 +31,8 @@ The Lesson candidate method and API changes remain Unreleased; the current publi
 - Added modifier-qualified English miss objects, colon question prefixes, and timestamp-plus-level log headers.
 - Preserved sentence-level choice-question scope, tightened Java stack frames, and added common answer subjects.
 - Limited choice-question scope to self-doubt forms before comma or semicolon splitting.
+- Recognized comma-delimited fractional seconds in pasted log timestamps.
+- Stopped inferring unregistered repository basenames as target aliases.
 
 ## [v0.1.0] - 2026-07-26
 

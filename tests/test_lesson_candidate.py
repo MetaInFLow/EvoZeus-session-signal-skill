@@ -170,6 +170,7 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "AssertionError: your answer is wrong\n请分析这条异常日志。",
         "[ERROR] your answer is wrong\n请分析这条日志。",
         "[2026-07-31 12:00:00] [ERROR] your answer is wrong\n请分析这条日志。",
+        "2026-07-31 12:00:00,000 ERROR your answer is wrong\n请分析这条日志。",
         "at com.example.Handler.run(Handler.java:42)\n请分析这条堆栈。",
     ],
 )
@@ -238,6 +239,29 @@ def test_target_selection_leaves_colliding_alias_unassigned(tmp_path: Path) -> N
             targets=targets,
         )
         is None
+    )
+
+
+def test_target_selection_does_not_infer_unregistered_repo_basename(
+    tmp_path: Path,
+) -> None:
+    targets = [_target("MetaInFlow/api", tmp_path / "api")]
+
+    assert (
+        select_lesson_target(
+            cwd=None,
+            prompt="Your answer is wrong; the API omitted a field.",
+            targets=targets,
+        )
+        is None
+    )
+    assert (
+        select_lesson_target(
+            cwd=None,
+            prompt="MetaInFlow/api 的结果不对。",
+            targets=targets,
+        )
+        == "MetaInFlow/api"
     )
 
 

@@ -87,7 +87,7 @@ _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _LOG_LEVEL_TEXT = r"(?:DEBUG|INFO|WARN(?:ING)?|ERROR|TRACE|FATAL)"
-_LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.+-]+)"
+_LOG_TIMESTAMP_TEXT = r"(?:\[\d{4}-\d{2}-\d{2}[^\]\r\n]*\]|\d{4}-\d{2}-\d{2}[T ][0-9:.,+-]+)"
 _LOG_LINE_PATTERN = re.compile(
     rf"^\s*(?:{_LOG_TIMESTAMP_TEXT}[ \t]+(?:\[{_LOG_LEVEL_TEXT}\][ \t]*)?|"
     rf"\[{_LOG_LEVEL_TEXT}\][ \t]*|"
@@ -274,7 +274,7 @@ def _valid_target(value: object) -> dict[str, object] | None:
     return {
         "repo": repo,
         "canonical_path": os.path.realpath(canonical_path),
-        "aliases": tuple(dict.fromkeys([repo, repo.rsplit("/", 1)[1], *aliases])),
+        "aliases": tuple(dict.fromkeys([repo, *aliases])),
     }
 
 
