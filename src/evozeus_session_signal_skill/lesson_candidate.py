@@ -61,13 +61,16 @@ _HYPOTHETICAL_CUE_PATTERN = re.compile(
     r"(?:如果|假如|假设|若(?:是|果)?|倘若|万一|(?<![\w])(?:if|when)(?![\w]))",
     re.IGNORECASE,
 )
-_CLAUSE_BOUNDARY_PATTERN = re.compile(
+_BASE_CLAUSE_BOUNDARY_PATTERN = re.compile(
     r"(?<=[。！？!?；;])[^\S\r\n]*|"
-    r"(?<=\.)[ \t]+(?=(?:[A-Z\u3400-\u9fff]|"
-    r"(?i:your answer|this|that|the result|i(?:'m| am)|you missed)\b))|"
     r"(?:[,，][ \t]*)?(?=(?:但(?:是)?|不过|然而|可是))|"
     r"(?:[,，][ \t]*|[ \t]+)(?=(?i:but|however|yet)\b)|\r?\n+"
 )
+_ENGLISH_PERIOD_BOUNDARY_PATTERN = re.compile(
+    r"\.[ \t]+(?=(?:[A-Z\u3400-\u9fff]|"
+    r"(?i:your answer|this|that|the result|i(?:'m| am)|you missed)\b))"
+)
+_ENGLISH_ABBREVIATIONS = ("e.g.", "i.e.")
 _INLINE_QUOTE_PATTERNS = tuple(
     re.compile(pattern, re.DOTALL)
     for pattern in (
@@ -116,6 +119,20 @@ def _without_fenced_blocks(text: str) -> str:
     return "".join(visible)
 
 
+def _split_clauses(text: str) -> list[str]:
+    clauses: list[str] = []
+    for base_clause in _BASE_CLAUSE_BOUNDARY_PATTERN.split(text):
+        cursor = 0
+        for boundary in _ENGLISH_PERIOD_BOUNDARY_PATTERN.finditer(base_clause):
+            preceding = base_clause[: boundary.start() + 1].rstrip().casefold()
+            if preceding.endswith(_ENGLISH_ABBREVIATIONS):
+                continue
+            clauses.append(base_clause[cursor : boundary.start() + 1])
+            cursor = boundary.end()
+        clauses.append(base_clause[cursor:])
+    return clauses
+
+
 def _candidate_text(prompt: str) -> str:
     """Keep direct prose and discard stable quoted, code, and pasted-log forms."""
     text = _without_fenced_blocks(prompt)
@@ -126,21 +143,40 @@ def _candidate_text(prompt: str) -> str:
         for line in text.splitlines()
         if not re.match(r"^\s*>", line) and not _LOG_LINE_PATTERN.match(line)
     ]
-    clauses = _CLAUSE_BOUNDARY_PATTERN.split("\n".join(lines))
+    clauses = _split_clauses("\n".join(lines))
     return "\n".join(
         clause.strip()
         for clause in clauses
-        if clause.strip() and not _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
+        if clause.strip() and not _is_attribution_only_clause(clause)
     )
 
 
-def _has_non_hypothetical_match(clause: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
+def _non_hypothetical_matches(
+    clause: str,
+    patterns: tuple[re.Pattern[str], ...],
+) -> list[re.Match[str]]:
+    matches: list[re.Match[str]] = []
     for pattern in patterns:
         for match in pattern.finditer(clause):
             local_context = re.split(r"[,，]", clause[: match.end()])[-1]
             if not _HYPOTHETICAL_CUE_PATTERN.search(local_context):
-                return True
-    return False
+                matches.append(match)
+    return matches
+
+
+def _has_non_hypothetical_match(clause: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
+    return bool(_non_hypothetical_matches(clause, patterns))
+
+
+def _is_attribution_only_clause(clause: str) -> bool:
+    attribution = _ATTRIBUTED_CLAUSE_PATTERN.search(clause)
+    if attribution is None:
+        return False
+    direct_feedback_before_attribution = any(
+        match.end() <= attribution.start()
+        for match in _non_hypothetical_matches(clause, _DIRECT_CORRECTION_PATTERNS)
+    )
+    return not direct_feedback_before_attribution
 
 
 def _has_direct_correction(clause: str) -> bool:

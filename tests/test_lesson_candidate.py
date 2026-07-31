@@ -30,6 +30,7 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
     [
         "这个结果不对，遗漏了用户明确给出的验收标准。",
         "你漏检了现有 PR 的阻塞评论，请补上。",
+        "你漏检了客户说的回滚要求，请补上。",
         "你漏检了回滚要求，是否可以补上？",
         "请看上下文\n不对",
         "我刚刚发现了一个升级 bug，需要记录这个机制缺口。",
@@ -111,6 +112,8 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "客户说这个结果错了，请帮我归纳客户原话。",
         "Someone said your answer is wrong; summarize their feedback.",
         "Someone said your answer is wrong. Please summarize that feedback.",
+        "Someone said e.g. your answer is wrong; summarize the quoted example.",
+        "Someone said i.e. this result is wrong. Please summarize the wording.",
     ],
 )
 def test_quoted_code_log_and_attributed_corrections_do_not_trigger(prompt: str) -> None:
