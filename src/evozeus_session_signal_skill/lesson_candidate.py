@@ -47,7 +47,11 @@ _CHINESE_DURABLE_ACTION_TEXT = (
     r"自动(?:检查|捕捉|记录|识别|更新))"
 )
 _ENGLISH_DURABLE_SCOPE_TEXT = r"(?:from now on|every time|always|for all users)"
-_ENGLISH_DURABLE_IMPERATIVE_TEXT = r"(?:remember|check|hide|show|ask|record|run|execute)"
+_ENGLISH_DURABLE_IMPERATIVE_TEXT = (
+    r"(?:remember|check|hide|show|ask|record|run|execute|"
+    r"expose|reveal|share|include|send|publish|create|skip|guess|assume|"
+    r"use|read|write)"
+)
 _ENGLISH_DURABLE_MODAL_TEXT = (
     r"(?:must|should|needs?[ \t]+to|has[ \t]+to|have[ \t]+to|"
     r"does?[ \t]+not|doesn't|don't|never)"
@@ -64,11 +68,13 @@ _DURABLE_RULE_PATTERNS = (
     ),
     re.compile(
         rf"(?:^|[.!?;\n][ \t]*){_ENGLISH_DURABLE_SCOPE_TEXT}\b[ \t]*"
+        rf"(?:(?:in|for|on|within|under|across|during)\b"
+        rf"[^,;.!?\r\n]{{0,48}})?[,，]?[ \t]*"
         rf"(?:(?:always|please)[ \t]+)*{_ENGLISH_DURABLE_IMPERATIVE_TEXT}\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"(?:^|[.!?;\n][ \t]*)never[ \t]+(?!mind\b)[a-z][a-z0-9_-]*\b",
+        rf"(?:^|[.!?;\n][ \t]*)never[ \t]+{_ENGLISH_DURABLE_IMPERATIVE_TEXT}\b",
         re.IGNORECASE,
     ),
 )
@@ -391,10 +397,11 @@ def select_lesson_target(
             )
             return str(containing[0]["repo"])
 
+    visible_prompt = _candidate_text(prompt)
     mentioned = {
         str(target["repo"])
         for target in valid_targets
-        if any(_alias_is_mentioned(prompt, alias) for alias in target["aliases"])
+        if any(_alias_is_mentioned(visible_prompt, alias) for alias in target["aliases"])
     }
     return next(iter(mentioned)) if len(mentioned) == 1 else None
 

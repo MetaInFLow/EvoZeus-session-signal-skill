@@ -67,6 +67,8 @@ from evozeus_session_signal_skill.lesson_candidate import (  # noqa: E402
         "I'm not satisfied; you didn't follow the requirement.",
         "I’m not satisfied; you did not follow the requirement.",
         "From now on, always check the release boundary before tagging.",
+        "From now on in this repo, always run tests.",
+        "For all users in production, show status.",
         "For all users, show status.",
         "For all users, agents must show status.",
         "Always check the release boundary.",
@@ -144,6 +146,9 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "Your answer is wrong; or am I misunderstanding it?",
         "是你漏检了回滚要求；还是我理解错了？",
         "Never mind.",
+        "Never saw this before.",
+        "Never used this tool before.",
+        "Never had this problem before.",
         "Every time I run tests, the build is slow.",
         "I always ask users for details.",
         "Your answer is wrong: or am I misunderstanding it?",
@@ -271,6 +276,23 @@ def test_target_selection_uses_only_one_unique_alias(tmp_path: Path) -> None:
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "```text\nAlpha Skill\n```\n这个结果不对。",
+        "> Alpha Skill\n这个结果不对。",
+        '"Alpha Skill" 的结果不对。',
+        "[INFO] Alpha Skill 的结果不对。\n这个结果不对。",
+    ],
+)
+def test_target_selection_ignores_aliases_outside_visible_prose(
+    tmp_path: Path, prompt: str
+) -> None:
+    targets = [_target("MetaInFlow/alpha", tmp_path / "alpha", "Alpha Skill")]
+
+    assert select_lesson_target(cwd=None, prompt=prompt, targets=targets) is None
 
 
 def test_target_selection_leaves_colliding_alias_unassigned(tmp_path: Path) -> None:
