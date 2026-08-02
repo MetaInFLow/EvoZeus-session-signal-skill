@@ -142,6 +142,7 @@ def test_high_precision_correction_and_durable_rule_detection(prompt: str) -> No
         "This should be fixed?",
         "你漏检了这个要求吗，能补上吗？",
         "是你漏检了回滚要求，还是我理解错了？",
+        "是你的结果不对，还是文档过期了？",
         "Your answer is wrong, or am I misunderstanding it?",
         "Your answer is wrong; or am I misunderstanding it?",
         "是你漏检了回滚要求；还是我理解错了？",
@@ -194,6 +195,12 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
         "A release manager reported you missed the rollback requirement; summarize it.",
         "张三报告答案不对，请总结他的反馈。",
         "Someone said the answer is wrong; summarize their feedback.",
+        "The reviewer says the answer is wrong; summarize that feedback.",
+        "The reviewer writes the answer is wrong; summarize that feedback.",
+        "The reviewer reports the answer is wrong; summarize that feedback.",
+        "The reviewer notes the answer is wrong; summarize that feedback.",
+        "The reviewer states the answer is wrong; summarize that feedback.",
+        "The reviewer claims the answer is wrong; summarize that feedback.",
         "Someone said you missed the rollback requirement; summarize their feedback.",
         "Someone said your answer is wrong. Please summarize that feedback.",
         "Someone said e.g. your answer is wrong; summarize the quoted example.",
@@ -219,6 +226,11 @@ def test_direct_corrections_outside_conditional_scope_still_trigger(prompt: str)
             "请分析这段 traceback。"
         ),
         "AssertionError: your answer is wrong\n请分析这条异常日志。",
+        (
+            "Caused by: java.lang.AssertionError: your answer is wrong\n"
+            "    at com.example.Handler.run(Handler.java:42)\n"
+            "请分析这条异常日志。"
+        ),
         "[ERROR] your answer is wrong\n请分析这条日志。",
         "[2026-07-31 12:00:00] [ERROR] your answer is wrong\n请分析这条日志。",
         "2026-07-31 12:00:00,000 ERROR your answer is wrong\n请分析这条日志。",

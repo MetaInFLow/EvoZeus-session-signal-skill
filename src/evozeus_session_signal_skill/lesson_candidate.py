@@ -94,6 +94,12 @@ _SELF_DOUBT_QUESTION_PATTERN = re.compile(
     r"(?:are|did|do|have|were)\s+we)\b).*[?？][\"'”’）)]*\s*$",
     re.IGNORECASE,
 )
+_CHOICE_QUESTION_PATTERN = re.compile(
+    r"(?:还是|\bwhether\b|\bor\s+(?:(?:am|is|are|was|were|do|does|did|"
+    r"have|has|can|could|should|would|might)\b|(?:i|we)\b))"
+    r".*?[?？][\"'”’）)]*\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
 _REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FENCE_OPEN_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[^\r\n]*$")
 _FENCE_CLOSE_PATTERN = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})[ \t]*$")
@@ -126,7 +132,8 @@ _INLINE_QUOTE_PATTERNS = tuple(
 _ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     r"(?:(?:他|她|用户|客户|对方|别人)说(?!的)|转述|"
     r"引用(?:(?:内容|原文)?如下|内容|原文)[ \t]*[：:,，]|日志.{0,8}(?:写|显示)|"
-    r"\b(?:he|she|they|the user|the customer|someone)\s+(?:said|wrote|reported)\b)",
+    r"\b(?:he|she|they|the user|the customer|someone)\s+"
+    r"(?:said|says|wrote|writes|reported|reports|noted|notes|stated|states|claimed|claims)\b)",
     re.IGNORECASE,
 )
 _GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
@@ -136,7 +143,7 @@ _GENERIC_ATTRIBUTED_CLAUSE_PATTERN = re.compile(
     r"(?:^|[,;.!?][ \t]*)(?!(?:i|we|you)\b)"
     r"(?:(?:the|a|an)[ \t]+)?[a-z][a-z0-9_.-]*"
     r"(?:[ \t]+[a-z][a-z0-9_.-]*){0,3}[ \t]+"
-    r"(?:said|wrote|reported|noted|stated|claimed|thought|thinks?)\b"
+    r"(?:said|says|wrote|writes|reported|reports|noted|notes|stated|states|claimed|claims|thought|thinks?)\b"
     r"(?![ \t]+(?:above|below|earlier|previously|by)\b)",
     re.IGNORECASE,
 )
@@ -147,7 +154,7 @@ _LOG_LINE_PATTERN = re.compile(
     rf"(?:\[{_LOG_LEVEL_TEXT}\]|{_LOG_LEVEL_TEXT}\b)[ \t]*|"
     rf"\[{_LOG_LEVEL_TEXT}\][ \t]*|"
     rf"{_LOG_LEVEL_TEXT}\b|"
-    r"Traceback\b|File \"|Exception\b|at\s+[\w.$<>]+\([^()\r\n]*\))",
+    r"Traceback\b|File \"|Exception\b|Caused by:\s*|at\s+[\w.$<>]+\([^()\r\n]*\))",
     re.IGNORECASE,
 )
 _PYTHON_TRACEBACK_START_PATTERN = re.compile(r"^\s*Traceback\b", re.IGNORECASE)
@@ -307,9 +314,12 @@ def _has_explicit_signal(clause: str) -> bool:
 
 def is_lesson_candidate(prompt: str) -> bool:
     """Return whether one direct user turn carries a high-precision Lesson signal."""
+    candidate_text = _candidate_text(prompt)
+    if _CHOICE_QUESTION_PATTERN.search(candidate_text):
+        return False
     clauses = [
         " ".join(clause.split())
-        for clause in _candidate_text(prompt).splitlines()
+        for clause in candidate_text.splitlines()
         if clause.strip()
     ]
     for clause in clauses:
