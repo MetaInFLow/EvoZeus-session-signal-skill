@@ -1,0 +1,40 @@
+{
+  "schema_version": "evozeus.session-signal.lesson-candidate-api-contract.v1",
+  "api": "evozeus.session-signal.lesson-candidate.v1",
+  "event_name": "UserPromptSubmit",
+  "transport": "stdin_stdout_json",
+  "request": {
+    "required": [
+      "schema_version",
+      "event_name",
+      "prompt",
+      "targets"
+    ],
+    "optional": [
+      "cwd"
+    ],
+    "limits": {
+      "request_bytes": 262144,
+      "prompt_chars": 32000,
+      "targets": 256,
+      "aliases_per_target": 32,
+      "alias_chars": 128
+    }
+  },
+  "response": {
+    "neutral_fields": [
+      "schema_version",
+      "candidate"
+    ],
+    "candidate_fields": [
+      "schema_version",
+      "candidate",
+      "target_repo",
+      "model_guidance"
+    ]
+  },
+  "side_effects": {
+    "persistence": false,
+    "network": false
+  }
+}
